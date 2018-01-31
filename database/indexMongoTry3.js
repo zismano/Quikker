@@ -1,17 +1,8 @@
-// const mongoose = require('mongoose');
+const mongoClient = require('mongodb').MongoClient;
 
-// mongoose.connect('mongodb://localhost/drivers');
+const url = "mongodb://localhost:27017/";
 
-// const db = mongoose.connection;
-
-// let driverSchema = mongoose.Schema({
-//   location: [{ x: Number, y: Number }],
-//   activity: Boolean,
-//   availability: Boolean,
-// }); 
-
-// const Driver = mongoose.model('Driver', driverSchema);
-var mongoClient = require('mongodb').MongoClient;
+const db = mongoClient.connect(url);
 
 let createDriver = (driver, index) => {
   driver._id = index + 1;   
@@ -25,47 +16,75 @@ let createDriver = (driver, index) => {
 
 // populates drivers collection with 50K rows
 let populateDrivers = (index, documentNumber, callback) => {
-  mongoClient.connect('mongodb://localhost:27017/', function(err, db) { 
-    var dbase = db.db('cars'); //here
+    db.then(db => {
+      const dbase = db.db('cars'); //here  
+      const collection = dbase.collection('drivers');
+      const batchNumber = documentNumber - index;
+      const start = new Date();
+      let batchDocuments = [];
+      while (index < documentNumber) {
+        let driver = createDriver({}, index);
+        batchDocuments[index % batchNumber] = driver;
+        if ((index + 1) % batchNumber === 0) {
+          collection.insert(batchDocuments, (err, result) => {
+            if (err) {
+              console.log(err);
+            } else {
+              batchDocuments = [];
+              callback(null, result);
+            }
+          });
+        }
+        index++;
+        if (index % 100000 === 0) {
+          console.log(`Inserted ${index} documents.`);
+        }
+      }
+      console.log(`Inserted  ${documentNumber} in (${(new Date() - start) / 1000.0}) s`);
+    //  db.close();
+    });
+};
+
+let updateDriver = (db, driver) => {
+  let start = new Date();
+  db.then(db => {
+    var dbase = db.db('cars');
     var collection = dbase.collection('drivers');
-    const batchNumber = documentNumber - index;
-    const start = new Date();
-    let batchDocuments = [];
-    while (index < documentNumber) {
-      let driver = createDriver({}, index);
-      batchDocuments[index % batchNumber] = driver;
-      if ((index + 1) % batchNumber === 0) {
-        collection.insert(batchDocuments, (err, result) => {
-          if (err) {
-            console.log(err);
-          } else {
-            batchDocuments = [];
-            callback(null, result);
-          }
-        });
-      }
-      index++;
-      if (index % 100000 === 0) {
-        console.log(`Inserted ${index} documents.`);
-      }
-    }
-    console.log(`Inserted  ${documentNumber} in (${(new Date() - start) / 1000.0}) s`);
-  //  db.close();
-  });
-};
 
-let updateDriver = (driver) => {
-
-  db.drivers.update(
+  collection.update(
     { '_id': driver._id },
-    { 'location.x': driver.location.x,
-      'location.y': driver.location.y,
-      'availability': driver.availability,
-      'activity': driver.activity }
-	)
+    { 'location': {
+        'x': driver.location.x,
+        'y': driver.location.y,
+      },
+      'activity': driver.activity,
+      'availability': driver.availability }, (err, result) => {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log(`Update time: ${(new Date() - start) / 1000} s`);
+        }
+      }
+  )
+});
 };
+
+
+
+// let updateDriver = (driver) => {
+
+//   db.drivers.update(
+//     { '_id': driver._id },
+//     { 'location.x': driver.location.x,
+//       'location.y': driver.location.y,
+//       'availability': driver.availability,
+//       'activity': driver.activity }
+// 	)
+// };
 
 module.exports = {
-  createDriver,
+ // createDriver,
+  updateDriver,
   populateDrivers,
+  db,
 };
