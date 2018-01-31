@@ -1,9 +1,10 @@
-  {
+{
   "name": "quikker",
   "version": "1.0.0",
   "description": "The project description",
   "main": ".eslintrc.js",
   "dependencies": {
+    "cassandra-driver": "^3.3.0",
     "mongoose": "^5.0.2"
   },
   "devDependencies": {
