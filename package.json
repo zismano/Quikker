@@ -1,0 +1,25 @@
+  {
+  "name": "quikker",
+  "version": "1.0.0",
+  "description": "The project description",
+  "main": ".eslintrc.js",
+  "dependencies": {
+    "mongoose": "^5.0.2"
+  },
+  "devDependencies": {
+    "express": "^4.16.2"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zismano/Quikker.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zismano/Quikker/issues"
+  },
+  "homepage": "https://github.com/zismano/Quikker#readme"
+}
