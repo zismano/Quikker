@@ -8,10 +8,16 @@
     "mongoose": "^5.0.2"
   },
   "devDependencies": {
-    "express": "^4.16.2"
+    "express": "^4.16.2",
+    "eslint": "^4.15.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "eslint-plugin-react": "^7.5.1"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "lint": "eslint ./ --config .eslintrc.js --ext js,jsx --ignore-pattern node_modules/"
   },
   "repository": {
     "type": "git",
