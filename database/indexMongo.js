@@ -27,7 +27,7 @@ let populateDB = function(start, end, duration) {
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
         return;
       } 
-      populateDB(start , start + 1, duration);
+      populateDB(start, start + 1, duration);
     }
   })
 }
@@ -108,6 +108,8 @@ let updateDriver = (driver, callback) => {
     )
   });
 };
+
+
 
 module.exports = {
   updateDriver,
