@@ -1,18 +1,22 @@
 const mongoClient = require('mongodb').MongoClient;
+const helpers = require('../helpers/dataGenerator.js');
 
 const url = "mongodb://localhost:27017/";
 
 const db = mongoClient.connect(url);
 
-let createDriver = (driver, index) => {
-  driver.driverId = index + 1;   
-  driver.location = {};
-  driver.activity = Math.round(Math.random());
-  driver.availability = (driver.activity === 1) ? Math.round(Math.random()) : 0;
-  driver.location.x = Math.round(Math.random() * 1000);
-  driver.location.y = Math.round(Math.random() * 1000);
-  return driver;
-};
+const x = 1000;
+const y = 1000;
+
+// let createDriver = (driver, index) => {
+//   driver.driverId = index + 1;   
+//   driver.location = {};
+//   driver.activity = Math.round(Math.random());
+//   driver.availability = (driver.activity === 1) ? Math.round(Math.random()) : 0;
+//   driver.location.x = Math.round(Math.random() * 1000);
+//   driver.location.y = Math.round(Math.random() * 1000);
+//   return driver;
+// };
 
 let populateDB = function(start, end, duration) {
   // insert batches of 50,000 records to database
@@ -25,9 +29,31 @@ let populateDB = function(start, end, duration) {
       // make it 200 times (recursive call to function)
       if (start === 200) {
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
-        return;
+        db.then(db => {
+          const dbase = db.db('cars');
+          const collection = dbase.collection('drivers');
+          // creating index of activity
+          collection.createIndex("activity", (err, result) => {
+            if (err) {
+              console.log(err);
+              return;
+            } else {
+              console.log('Add index activity');
+              // creating index of availability
+              collection.createIndex("availability", (err, result) => {
+                if (err) { 
+                  console.log(err);
+                } else {
+                  console.log('Add index availability');
+                  return;            
+                }
+              });
+            }
+          });
+        });
+      } else {
+        populateDB(start, start + 1, duration);      
       } 
-      populateDB(start, start + 1, duration);
     }
   })
 }
@@ -41,7 +67,8 @@ let populateDrivers = (index, documentNumber, callback) => {
       const start = new Date();
       let batchDocuments = [];
       while (index < documentNumber) {
-        let driver = createDriver({}, index);
+ //       let driver = createDriver({}, index);
+        let driver = helpers.createDriver(index + 1, x, y);
         batchDocuments[index % batchNumber] = driver;
         if ((index + 1) % batchNumber === 0) {
           collection.insert(batchDocuments, (err, result) => {
@@ -71,7 +98,8 @@ let updateManyDrivers = (index, startTime) => {
     console.log(`Requests per second ${10000 / (totalDuration / 1000)}`);
     return;
   } else {
-    let driver = createDriver({}, index);
+ //   let driver = createDriver({}, index);
+    let driver = helpers.createDriver(index + 1, x, y);
     updateDriver(driver, (err, results) => {
       if (err) {
         console.log(err);
@@ -109,6 +137,22 @@ let updateDriver = (driver, callback) => {
   });
 };
 
+// to count active or available drivers {activity: 1}
+let countDriversByQuery = (params, callback) => {
+  let start = new Date();
+  db.then(db => {
+    var dbase = db.db('cars');
+    var collection = dbase.collection('drivers');
+    collection.find(params).count((err, result)=> {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log(result);
+        console.log(`${(new Date - start) / 1000}s`);
+      }
+    });
+  })
+}
 
 
 module.exports = {
@@ -116,4 +160,5 @@ module.exports = {
   populateDB,
   updateManyDrivers,
   db,
+  countDriversByQuery,
 };
