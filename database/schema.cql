@@ -8,10 +8,16 @@ CREATE TYPE ks_drivers.point (
 );
 
 CREATE TABLE IF NOT EXISTS ks_drivers.drivers (
-	driverId int PRIMARY KEY, 
+	updated_in timestamp, 
+	driverId int, 
 	name text, 
 	phone text, 
 	location frozen <point>, 
 	availability boolean,
-	activity boolean
+	activity boolean,
+	primary key(driverId)	
 );
+
+CREATE INDEX ON ks_drivers.drivers (availability);
+
+CREATE INDEX ON ks_drivers.drivers (activity);
