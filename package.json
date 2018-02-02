@@ -5,6 +5,7 @@
   "main": ".eslintrc.js",
   "dependencies": {
     "cassandra-driver": "^3.3.0",
+    "faker": "^4.1.0",
     "mongoose": "^5.0.2"
   },
   "devDependencies": {
@@ -17,7 +18,8 @@
   },
   "scripts": {
     "test": "mocha",
-    "lint": "eslint ./ --config .eslintrc.js --ext js,jsx --ignore-pattern node_modules/"
+    "lint": "eslint ./ --config .eslintrc.js --ext js,jsx --ignore-pattern node_modules/",
+    "build:keyspace": "cqlsh -u root -f keyspace.cql"
   },
   "repository": {
     "type": "git",
