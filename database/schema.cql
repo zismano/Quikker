@@ -8,7 +8,7 @@ CREATE TYPE ks_drivers.point (
 );
 
 CREATE TABLE IF NOT EXISTS ks_drivers.drivers (
-	updated_in timestamp, 
+	updated_at timestamp, 
 	driverId int, 
 	name text, 
 	phone text, 

@@ -4,9 +4,11 @@
   "description": "The project description",
   "main": ".eslintrc.js",
   "dependencies": {
+    "axios": "^0.17.1",
     "cassandra-driver": "^3.3.0",
     "faker": "^4.1.0",
-    "mongoose": "^5.0.2"
+    "mongoose": "^5.0.2",
+    "redis": "^2.8.0"
   },
   "devDependencies": {
     "express": "^4.16.2",
@@ -19,7 +21,9 @@
   "scripts": {
     "test": "mocha",
     "lint": "eslint ./ --config .eslintrc.js --ext js,jsx --ignore-pattern node_modules/",
-    "build:keyspace": "cqlsh -u root -f keyspace.cql"
+    "build:keyspace": "cqlsh -u root -f keyspace.cql",
+    "populate:mongodb": "node helpers/dataGeneratorMongo.js",
+    "populate:cassandra": "node helpers/dataGeneratorCassandra.js"
   },
   "repository": {
     "type": "git",
