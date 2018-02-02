@@ -5,8 +5,8 @@ const client = new cassandra.Client({ contactPoints: ['127.0.0.1'] });
 
 let insertDriver = (driver, callback) => {
   const query = "INSERT INTO ks_drivers.drivers \
-    (driverId, name, phone, location, availability, activity) \
-    VALUES (?,?,?,?,?,?)";
+    (updated_in, driverId, name, phone, location, availability, activity) \
+    VALUES (toTimestamp(now()),?,?,?,?,?,?)";
   const params = [
     driver.driverId,
     driver.name,
@@ -28,12 +28,11 @@ let insertDriver = (driver, callback) => {
 
 
 let updateDriver = driver => {
+  let startTime = new Date();
   const query = "UPDATE ks_drivers.drivers SET \
-    name = ?, phone = ?, location = ?, availability = ?, activity = ? \
+    updated_in = toTimestamp(now()), location = ?, availability = ?, activity = ? \
     WHERE driverId = ?";
   const params = [
-    driver.name,
-    driver.phone,
     { x: driver.location.x, y: driver.location.y },
     driver.availability,
     driver.activity,
@@ -43,7 +42,8 @@ let updateDriver = driver => {
     if (err) {
       console.log(`Error: ${err}`);
     } else {
-      console.log(`Insert: ${results}`);
+      console.log(`Update: ${results}`);
+      console.log(`Duration of update a record: ${(new Date() - startTime) / 1000}s`);
     }
   });
 };
@@ -56,11 +56,11 @@ let loadDrivers = () => {
 };
 
 const d = {
-  driverId: 2,
-  name: 'Shi',
+  driverId: 4310,
+  name: 'Test this',
   phone: '4321',
   location: { x: 33, y: 999 },
-  availability: 0,
+  availability: 1,
   activity: 1,
 };
 
@@ -109,15 +109,15 @@ let createDriver = num =>
   });
 
 
-// for insertion of 100K records, it took 3s
+// for insertion of 100K records with batches of 400, it took 3s with one primary key (driverId)
 // for insertion of 1M records, it took 30s
 // for insertion of 10M records, it took 336s
 let insertBatch = (times, startTime) => {
   let queries = [];
   const query = "INSERT INTO ks_drivers.drivers \
-    (driverId, name, phone, location, availability, activity) \
-    VALUES (?,?,?,?,?,?)";
-  const batch = 400;  // tried 500, got Error: ResponseError: Batch too large
+    (updated_in, driverId, name, phone, location, availability, activity) \
+    VALUES (toTimestamp(now()),?,?,?,?,?,?)";
+  const batch = 300;  // tried 500, got Error: ResponseError: Batch too large
   for (let i = times * batch; i < (times + 1) * batch; i++) {
     let driver = createDriver(i + 1);
     let params = [
@@ -136,7 +136,8 @@ let insertBatch = (times, startTime) => {
    if (err) {
     console.log(`Error: ${err}`)
    } else {
-      if (times === 25000 - 1) {
+ //     if (times === 25000 - 1) {
+      if (times === 33334) {
         console.log(`Insert batch of ${batch * (times + 1)} in ${(new Date() - startTime) / 1000}s`);
         return;
       } else {
@@ -146,8 +147,9 @@ let insertBatch = (times, startTime) => {
    }
   }); 
 }
-
+insertBatch(0, new Date());
 //insertMany(new Date(), 0);
+//updateDriver(d);
 
 module.exports = {
   insertBatch,
