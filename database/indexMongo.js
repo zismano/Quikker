@@ -23,11 +23,10 @@ let updateDriver = (driver, callback) => {
         activity: driver.activity,
         availability: driver.availability }, (err, result) => {
           if (err) {
-       //     callback(err);
-            console.log(err);
+            callback(err);
           } else {
             console.log(`Update time: ${(new Date() - start) / 1000} s`);
-          //  callback(null, result);
+            callback(null, result);
           }
         }
     )
@@ -62,11 +61,13 @@ let countDriversByQuery = (params, callback) => {
   db.then(db => {
     var dbase = db.db('cars');
     var collection = dbase.collection('drivers');
-    collection.find(params).count((err, result)=> {
+    collection.find(params).count((err, result) => {
       if (err) {
         console.log(err);
+        callback(err);
       } else {
         console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
+        callback(null, result);
       }
     });
   })
@@ -75,43 +76,63 @@ let countDriversByQuery = (params, callback) => {
   });
 }
 
+let getDriverStatus = (params, callback) => {
+  db.then(db => {
+    var dbase = db.db('cars');
+    var collection = dbase.collection('drivers');
+    collection.findOne(params, (err, result) => {
+      if (err) {
+        callback(err);
+      } else {
+        callback(null, result);
+      }
+    });
+  })
+  .catch(err => {
+    console.log(err);
+  });
+}
+
+
+
 //> db.drivers.find({activity: 1}).count();
 //4999210 // number of online drivers
 
 
 // takes 10s??????
-// let countByActivity = () => {
-//   let start = new Date();
-//   db.then(db => {
-//     var dbase = db.db('cars');
-//     var collection = dbase.collection('drivers');
-//     collection.aggregate([
-//         {
-//           $group: {
-//             _id: "$activity",
-//             count: { $sum: 1 }
-//           }
-//         }
-//       ]).toArray(function(err, results) {
-//         if (err) {
-//           console.log(`Error: ${err}`);          
-//         } 
-//         else {
-//           console.log(`Results: ${results}`);
-//           console.log(`duration ${(new Date() - start) / 1000}s`);
-//         }
-//       });
-//   })
-//   .catch(err => {
-//     console.log(err);
-//   });
-// }
+let countByActivity = () => {
+  let start = new Date();
+  db.then(db => {
+    var dbase = db.db('cars');
+    var collection = dbase.collection('drivers');
+    collection.aggregate([
+        {
+          $group: {
+            _id: "$activity",
+            count: { $sum: 1 }
+          }
+        }
+      ]).toArray(function(err, results) {
+        if (err) {
+          console.log(`Error: ${err}`);          
+        } 
+        else {
+          console.log(`Results: ${results}`);
+          console.log(`duration ${(new Date() - start) / 1000}s`);
+        }
+      });
+  })
+  .catch(err => {
+    console.log(err);
+  });
+}
 
-
-
+//countByActivity();
+//countDriversByQuery({activity: 1})
 
 module.exports = {
   db,
   updateDriver,
   countDriversByQuery,
+  getDriverStatus
 };
