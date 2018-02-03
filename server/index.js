@@ -3,7 +3,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 //const path = require('path'); 
 const db = require('../database/indexMongo.js');
-//const dbCass = require('../database/indexCassandra.js');
 
 const app = express();
 
@@ -83,7 +82,7 @@ let sendStatusNumbersToPricing = () => {
       if (err) {
         throw err;
       }
-      axios.post('http://127.0.0.1:3000/pricing', {
+      axios.post('http://127.0.0.1:4000/pricing', {
         params: {
           activeDrivers,
           availableDrivers,
@@ -98,13 +97,12 @@ let sendStatusNumbersToPricing = () => {
     })
   });
 }
+//sendStatusNumbersToPricing();
 
-sendStatusNumbersToPricing();
-
-// just for simulation - data inside req.body.params
-// DELETE THIS
+// fetch price ratio, compare to previous price ratio and send push notifications to some quantity of offline drivers
 app.post('/pricing', (req, res) => {
-	res.send('Status received');
+	console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
+	res.send('Success receiving surge ratio');
 })
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
