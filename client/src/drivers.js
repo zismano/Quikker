@@ -17,6 +17,7 @@ function getStatusFromDriver(driver) {
   })
   .then(function(response) {
     console.log(response.data);
+    // if response contains user's info (there's a match) send OK
   })
   .catch(function(error) {
   });
@@ -45,6 +46,6 @@ let makeDriverOnline = (index, maxX, maxY) => {
 };
 
 let createOfflineDriver = (index, maxX, maxY) => {
-
 }
-getStatusFromDriver({driverId: 10, location: {x: 1, y: 1}, activity: 1, availability: 1});
+
+getStatusFromDriver({driverId: 4, location: {x: 1, y: 1}, activity: 1, availability: 1});
