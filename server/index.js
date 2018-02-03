@@ -1,14 +1,13 @@
 const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
-//const path = require('path'); 
 const db = require('../database/indexMongo.js');
 
 const app = express();
 
 app.use(bodyParser.json());
 
-//app.use('/', express.static(path.join(__dirname, '../client/dist')));
+//WINDOW.surgeRatio = undefined; 
 
 app.get('/', (req, res) => {
  // 	db.db;
@@ -54,23 +53,25 @@ app.get('/cars', (req, res) => {
 	} else {
 	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
 
-	  db.updateDriver(driver, (err, result) => {
-	  	if (err) {
-	  	  throw err;
-	  	} else {
-	  	  // SNS (notification) to Matching/Trips
-	  	  // doSomething()
-	  	  if (reqActivity) {
-		    res.send('Driver turned online');
-		    // if response contains user's info (there's a match) send OK
-            console.log('Hello'); 
-		  } else {
-     	    res.send('Driver turned offline');	
-		  } 
-	    }
-	  })
-    }
-  });
+	//   db.updateDriver(driver, (err, result) => {
+	//   	if (err) {
+	//   	  throw err;
+	//   	} else {
+	//   	  // SNS (notification) to Matching/Trips
+	//   	  // doSomething()
+	//   	  if (reqActivity) {
+	// //	    res.send('Driver turned online');
+	// 		console.log('Driver turned online');
+	// 	    // if response contains user's info (there's a match) send OK
+	// 	  } else {
+ //    // 	    res.send('Driver turned offline');
+ //    		console.log('Driver turned offline');	
+	// 	  } 
+	//     }
+	//   })
+	  sendDriverToMatching(driver, res);
+	}
+  })
 });
 
 let sendStatusNumbersToPricing = () => {
@@ -97,12 +98,59 @@ let sendStatusNumbersToPricing = () => {
     })
   });
 }
+
+let sendDriverToMatching = (driver, res) => {
+  // if driver became active, he waits to a match
+  if (Number(driver.activity)) {
+    axios.get('http://127.0.0.1:5000/available/cars', {
+      params: {
+        driverId: driver.driverId,
+        name: driver.name,
+        phone: driver.phone,
+        location: {
+          x: driver.location.x,
+          y: driver.location.y,
+        },
+        availability: driver.availability,
+        activity: driver.activity,
+      },
+    })
+    .then(match => {
+      res.send(match);
+    })
+    .catch(err => {
+  	  throw err;
+    });
+
+  } else {	// driver is inactive, just post to Matching
+  	axios.post('http://127.0.0.1:5000/available/cars', {
+  	  params: {
+        driverId: driver.driverId,
+        activity: driver.activity,  	  	
+  	  },
+  	})
+  	.then(result => {
+  		console.log(result.data);
+  	})
+  	.catch(err => {
+  		throw err;
+  	})
+  }
+}
+
+
 //sendStatusNumbersToPricing();
 
 // fetch price ratio, compare to previous price ratio and send push notifications to some quantity of offline drivers
 app.post('/pricing', (req, res) => {
-	console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
-	res.send('Success receiving surge ratio');
+  console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
+  res.send('Success receiving surge ratio');
+  if (!WINDOW.surgeRatio || WINDOW.surgeRatio >= req.body.data.surgeRatio) {
+    WINDOW.surgeRatio = req.body.data.surgeRatio;
+  } else {
+    // send push notifications to X offline drivers
+    // increase creation of online drivers by Y  
+  }
 })
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
