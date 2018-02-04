@@ -9,32 +9,6 @@ app.use(bodyParser.json());
 
 //WINDOW.surgeRatio = undefined; 
 
-app.get('/', (req, res) => {
- // 	db.db;
-
-//	db.populateDB(0, 1, new Date());
-	// let driver = {
-	// 	driverId: 5,
-	// 	location: {
-	// 		x: 100,
-	// 		y: 200
-	// 	},
-	// 	availability: 1,
-	// 	activity: 1
-	// };
-	// db.updateDriver(db.db, driver);
-
-//	db.updateManyDrivers(0, new Date());
-//	console.log('started');
-//	dbCass.insertBatch(0, new Date());
- //dbCass.countDriversByQuery("activity"); 
-// dbCass.findDriversByQuery("activity");
-//	db.countByActivity();
-
-});
-//db.db;
-//	 db.countByActivity();
-
 app.get('/cars', (req, res) => {
 // console.log(req);
   console.log(req.query);
@@ -53,15 +27,17 @@ app.get('/cars', (req, res) => {
 	} else {
 	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
 
-	//   db.updateDriver(driver, (err, result) => {
-	//   	if (err) {
-	//   	  throw err;
-	//   	} else {
+	   db.updateDriver(driver, (err, result) => {
+	   	if (err) {
+	   	  throw err;
+	   	} else {
 	//   	  // SNS (notification) to Matching/Trips
 	//   	  // doSomething()
-	//   	  if (reqActivity) {
+	   	  if (reqActivity) {
 	// //	    res.send('Driver turned online');
 	// 		console.log('Driver turned online');
+			sendDriverToMatching(driver, res);
+		}
 	// 	    // if response contains user's info (there's a match) send OK
 	// 	  } else {
  //    // 	    res.send('Driver turned offline');
@@ -69,10 +45,15 @@ app.get('/cars', (req, res) => {
 	// 	  } 
 	//     }
 	//   })
-	  sendDriverToMatching(driver, res);
+	//  if (!driver.activity) {
+	//  	res.send(`${driver.driverId} is no longer active`);
+	//  }
+	  //sendDriverToMatching(driver, res);	// Matching is service. It sends to service, even if driver became inactive
 	}
   })
+};
 });
+})
 
 let sendStatusNumbersToPricing = () => {
   db.countDriversByQuery({ activity: 1 }, (err, activeDrivers) => {
@@ -87,13 +68,14 @@ let sendStatusNumbersToPricing = () => {
         params: {
           activeDrivers,
           availableDrivers,
+          message: 'updated status',
         },
       })
       .then(results => {
       	console.log(results.data);
       })
 	  .catch(err => {
-	  	throw err
+	  	throw err;
 	  });            
     })
   });
@@ -113,31 +95,57 @@ let sendDriverToMatching = (driver, res) => {
         },
         availability: driver.availability,
         activity: driver.activity,
+        message: 'look for a match',
       },
     })
     .then(match => {
-      res.send(match);
+      // check in DB/cache that driver not become offline when he waited for a match
+      db.getDriverStatus({ driverId: Number(driver.driverId) }, (err, result) => {
+      	if (err) {
+      	  throw err;
+      	} else if (result.activity) {
+	      console.log(match.data);
+	      res.send(match.data);
+      	}
+      	sendsAnswerToMatch(Number(driver.driverId), result.activity, result.availability);
+      })
     })
     .catch(err => {
   	  throw err;
     });
 
   } else {	// driver is inactive, just post to Matching
-  	axios.post('http://127.0.0.1:5000/available/cars', {
-  	  params: {
-        driverId: driver.driverId,
-        activity: driver.activity,  	  	
-  	  },
-  	})
-  	.then(result => {
-  		console.log(result.data);
-  	})
-  	.catch(err => {
-  		throw err;
-  	})
+  	let params = {
+      driverId: driver.driverId,
+      activity: driver.activity,
+      message: 'Driver is offline',
+  	};
+  	axiosPostRequest('http://127.0.0.1:5000/available/cars', params);
   }
 }
 
+let axiosPostRequest = (url, params) => {
+  axios.post(url, {
+    params,
+  })
+  .then(result => {
+	console.log(result.data);
+  })
+  .catch(err => {
+	throw err;
+  })	
+};
+
+let sendsAnswerToMatch = (driverId, activity, availability) => {
+  let message = Number(activity) ? 'Match' : 'No match';
+  let params = {
+    driverId,
+    activity,
+    availability,
+    message,
+  };
+  axiosPostRequest('http://127.0.0.1:5000/available/cars', params);
+};
 
 //sendStatusNumbersToPricing();
 
@@ -177,18 +185,6 @@ let createDriver = (driverId, name, phone, locationX, locationY, activity, avail
 //db.countByActivity();
 //ex.start();
 
-
-const d = {
-  driverId: 5,
-  name: 'else',
-  phone: '4321',
-  location: {
-    x:3,
-    y:5
-  },
-  activity: 1,
-  availability: 1
-};
 //db.updateDriver(d);
 
 //setInterval(() => sendStatusNumbersToPricing(), 1000);
