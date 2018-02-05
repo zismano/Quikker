@@ -93,11 +93,29 @@ let getDriverStatus = (params, callback) => {
   });
 }
 
+// gets 10,000 offline drivers (to send them notifications if surge ratio is high)
+let getOfflineDrivers = (num, callback) => {
+  let start = new Date();
+  db.then(db => {
+    var dbase = db.db('cars');
+    var collection = dbase.collection('drivers');
+    collection.find({activity: 0}, {"limit": num}).toArray((err, result) => {
+      if (err) {
+        callback(err);
+      } else {
+        console.log(`Duration:${(new Date - start) / 1000}s`);
+        callback(null, result);
+      }
+    });
+  })
+  .catch(err => {
+    console.log(err);
+  });
+}
+
 
 
 //> db.drivers.find({activity: 1}).count();
-//4999210 // number of online drivers
-
 
 // takes 10s??????
 let countByActivity = () => {
@@ -134,5 +152,6 @@ module.exports = {
   db,
   updateDriver,
   countDriversByQuery,
-  getDriverStatus
+  getDriverStatus,
+  getOfflineDrivers
 };
