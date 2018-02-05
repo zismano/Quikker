@@ -2,12 +2,21 @@ const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('../database/indexMongo.js');
+const push = require('../helpers/awsPush.js');
 
 const app = express();
 
 app.use(bodyParser.json());
 
-//WINDOW.surgeRatio = undefined; 
+global.surgeRatio = undefined; 
+
+app.get('/bla', (req, res) => {
+     //  results = [{name: 'Ofir Zisman', phone: '+14084105813'}, {name: 'Emma Liu', phone:'+14084105813'}]
+     //  results.forEach(result => {
+    	// console.log(result);
+    	// push.sendSMS(result.name, result.phone);
+     //  });
+});
 
 app.get('/cars', (req, res) => {
 // console.log(req);
@@ -15,14 +24,13 @@ app.get('/cars', (req, res) => {
   let reqActivity = Number(req.query.activity);
   // check in cache if needs to update, if yes - update cache, send updates to other services, send success to driver
   db.getDriverStatus({driverId: Number(req.query.driverId)}, (err, result) => {
-
   	if (err) {
   	  throw err;
   	} else if (reqActivity === result.activity && reqActivity) {
 	  res.send('Driver is already online');
     } else if (reqActivity === result.activity && !reqActivity) {
 	  res.send('Driver is already offline');
-	} else if (result.availablity === 1) {
+	} else if (result.availability === 0) {
 	  res.send('Driver has passengers and cannot get offline');
 	} else {
 	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
@@ -153,12 +161,24 @@ let sendsAnswerToMatch = (driverId, activity, availability) => {
 app.post('/pricing', (req, res) => {
   console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
   res.send('Success receiving surge ratio');
-  if (!WINDOW.surgeRatio || WINDOW.surgeRatio >= req.body.data.surgeRatio) {
-    WINDOW.surgeRatio = req.body.data.surgeRatio;
-  } else {
+  // current surge ratio greater than previous surge ratio
+  if (global.surgeRatio && global.surgeRatio < req.body.data.surgeRatio) {
+  	let ratio = (req.body.data.surgeRatio - global.surgeRatio) * 5;	// *10000 instead of *5
     // send push notifications to X offline drivers
-    // increase creation of online drivers by Y  
+  	db.getOfflineDrivers(ratio, (err, results) => {
+      if (err) {
+        throw err;
+      }
+      results.forEach(result => {
+    	console.log(result);
+    	push.sendSMS(result.name, result.phone);
+      });
+    });
+    // increase creation of online drivers, decrease creation of offline drivers
+    global.creationOfOnlineDriversTime *= 1.1;
+    global.creationOfOfflineDriversTime *= 0.9;  
   }
+  global.surgeRatio = req.body.data.surgeRatio;   
 })
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
@@ -167,8 +187,8 @@ let createDriver = (driverId, name, phone, locationX, locationY, activity, avail
   	name,
   	phone,
   	location: {
-  		x: locationX,
-  		y: locationY,
+  	  x: locationX,
+  	  y: locationY,
   	},
   	activity,
   	availability,
