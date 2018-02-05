@@ -32,6 +32,8 @@ app.get('/cars', (req, res) => {
 	  res.send('Driver is already offline');
 	} else if (result.availability === 0) {
 	  res.send('Driver has passengers and cannot get offline');
+	} else if (((new Date() - result.updated_at) / 1000 / 3600) < 2) { // last update 2 hours ago
+	  res.send('Driver may change status every 2 hours and more');
 	} else {
 	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
 
