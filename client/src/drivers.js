@@ -101,8 +101,23 @@ let turnDriverActive = () => {
   getStatusFromDriver(driver);
 };
 
-//setInterval(turnDriverActive, global.creationOfOnlineDriversTime * 10);
-//setInterval(turnDriverInactive, global.creationOfOfflineDriversTime * 10);
+setInterval(() => {
+  console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
+  turnDriverActive();
+  }, global.creationOfOnlineDriversTime * 100);
+
+setInterval(() => turnDriverInactive(), global.creationOfOfflineDriversTime * 100);
+
+let changeDriversInterval = (onlineDriversTime, offlineDriversTime) => {
+  global.creationOfOnlineDriversTime = onlineDriversTime;
+  global.creationOfOfflineDriversTime = offlineDriversTime;
+}; 
 
 
-getStatusFromDriver({driverId: 36, location: {x: 1, y: 1}, activity: 1, availability: 1});
+//getStatusFromDriver({driverId: 36, location: {x: 1, y: 1}, activity: 1, availability: 1});
+
+module.exports = {
+  changeDriversInterval,
+}
+
+
