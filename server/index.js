@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('../database/indexMongo.js');
 const push = require('../helpers/awsPush.js');
+//const drivers = require('../client/src/drivers.js');
 
 const app = express();
 
@@ -16,6 +17,8 @@ app.get('/bla', (req, res) => {
     	// console.log(result);
     	// push.sendSMS(result.name, result.phone);
      //  });
+     db.countDriversByQuery2();
+
 });
 
 app.get('/cars', (req, res) => {
@@ -67,6 +70,7 @@ app.get('/cars', (req, res) => {
 })
 
 let sendStatusNumbersToPricing = () => {
+ // let startTime = new Date();
   db.countDriversByQuery({ activity: 1 }, (err, activeDrivers) => {
     if (err) {
       throw err;
@@ -75,6 +79,7 @@ let sendStatusNumbersToPricing = () => {
       if (err) {
         throw err;
       }
+ //     console.log(`Duration: ${(new Date() - startTime) / 1000}s, active: ${activeDrivers} available: ${availableDrivers}`);
       axios.post('http://127.0.0.1:4000/pricing', {
         params: {
           activeDrivers,
@@ -91,6 +96,8 @@ let sendStatusNumbersToPricing = () => {
     })
   });
 }
+//sendStatusNumbersToPricing();
+//setInterval(() => sendStatusNumbersToPricing(), 1000);
 
 let sendDriverToMatching = (driver, res) => {
   // if driver became active, he waits to a match
@@ -176,15 +183,13 @@ let sendsAnswerToMatch = (driverId, activity, availability) => {
   axiosPostRequest('http://127.0.0.1:5000/available/cars', params);
 };
 
-//sendStatusNumbersToPricing();
-
 // fetch price ratio, compare to previous price ratio and send push notifications to some quantity of offline drivers
 app.post('/pricing', (req, res) => {
   console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
   res.send('Success receiving surge ratio');
   // current surge ratio greater than previous surge ratio
   if (global.surgeRatio && global.surgeRatio < req.body.data.surgeRatio) {
-  	let ratio = (req.body.data.surgeRatio - global.surgeRatio) * 5;	// *10000 instead of *5
+  	let ratio = (req.body.data.surgeRatio - global.surgeRatio) * 6;	// *10000 instead of *6
     // send push notifications to X offline drivers
   	db.getOfflineDrivers(ratio, (err, results) => {
       if (err) {
@@ -196,14 +201,15 @@ app.post('/pricing', (req, res) => {
       });
     });
     // increase creation of online drivers, decrease creation of offline drivers
-    global.creationOfOnlineDriversTime *= 1.1;
-    global.creationOfOfflineDriversTime *= 0.9; 
+    global.creationOfOnlineDriversTime /= 1.1;
+    global.creationOfOfflineDriversTime *= 1.1; 
     // if current surge ratio smaller than previous surge ratio, return to normal 
-  } else if (global.surgeRatio && global.surgeRatio > req.body.data.surgeRatio) {
+  } else if (global.surgeRatio && global.surgeRatio >= req.body.data.surgeRatio) {
     global.creationOfOnlineDriversTime = 1;
     global.creationOfOfflineDriversTime = 1;     
   }
-  global.surgeRatio = req.body.data.surgeRatio;   
+  global.surgeRatio = req.body.data.surgeRatio;
+  drivers.changeDriversInterval(global.creationOfOnlineDriversTime, global.creationOfOfflineDriversTime); 
 })
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
@@ -232,6 +238,5 @@ let createDriver = (driverId, name, phone, locationX, locationY, activity, avail
 
 //db.updateDriver(d);
 
-//setInterval(() => sendStatusNumbersToPricing(), 1000);
 
 app.listen(3000);
