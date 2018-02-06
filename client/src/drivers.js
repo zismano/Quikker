@@ -110,7 +110,7 @@ setInterval(() => turnDriverInactive(), global.creationOfOfflineDriversTime * 10
 
 let changeDriversInterval = (onlineDriversTime, offlineDriversTime) => {
   global.creationOfOnlineDriversTime = onlineDriversTime;
-  global.creationOfOfflineDriversTime = offlineDriversTime;
+  global.creationOfOfflineDriversTime = offlineDriversTime; 
 }; 
 
 
