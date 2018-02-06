@@ -76,6 +76,36 @@ let countDriversByQuery = (params, callback) => {
   });
 }
 
+// let countDriversByQuery2 = function() {
+//   let start = new Date();
+//   db.then(db => {
+//     var dbase = db.db('cars');
+//     var collection = dbase.collection('drivers');
+//     collection.mapReduce(
+//       function () {
+//           emit(1, this.availability)
+//       },
+//       function (key, values) {
+//         return Array.sum(values)
+//       },
+//       { 
+//         query: { status: "activity"},
+//        //  out: "online_total" 
+//         out: { inline: 1 }
+//       },
+//    //   { out: { inline: 1 } },
+//       function (err, result) {
+//           if (err) {
+//             console.log(err);
+//           } else {
+//             console.log(result);
+//           }
+//          // db.close();
+//       }
+//     );
+//   })
+// }
+
 let getDriverStatus = (params, callback) => {
   db.then(db => {
     var dbase = db.db('cars');
@@ -153,5 +183,7 @@ module.exports = {
   updateDriver,
   countDriversByQuery,
   getDriverStatus,
-  getOfflineDrivers
+  getOfflineDrivers,
+  countDriversByQuery2,
+
 };
