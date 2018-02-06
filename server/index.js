@@ -8,7 +8,7 @@ const app = express();
 
 app.use(bodyParser.json());
 
-global.surgeRatio = undefined; 
+global.surgeRatio = undefined;
 
 app.get('/bla', (req, res) => {
      //  results = [{name: 'Ofir Zisman', phone: '+14084105813'}, {name: 'Emma Liu', phone:'+14084105813'}]
@@ -21,18 +21,19 @@ app.get('/bla', (req, res) => {
 app.get('/cars', (req, res) => {
 // console.log(req);
   console.log(req.query);
+  let message = req.query.message; // defined only if driver becomes available 
   let reqActivity = Number(req.query.activity);
   // check in cache if needs to update, if yes - update cache, send updates to other services, send success to driver
   db.getDriverStatus({driverId: Number(req.query.driverId)}, (err, result) => {
   	if (err) {
   	  throw err;
-  	} else if (reqActivity === result.activity && reqActivity) {
+  	} else if (!message && reqActivity === result.activity && reqActivity) {
 	  res.send('Driver is already online');
-    } else if (reqActivity === result.activity && !reqActivity) {
+    } else if (!message && reqActivity === result.activity && !reqActivity) {
 	  res.send('Driver is already offline');
-	} else if (result.availability === 0) {
+	} else if (!message && result.activity && result.availability === 0) {
 	  res.send('Driver has passengers and cannot get offline');
-	} else if (((new Date() - result.updated_at) / 1000 / 3600) < 2) { // last update 2 hours ago
+	} else if (!message && ((new Date() - result.updated_at) / 1000 / 3600) < 2) { // last update 2 hours ago
 	  res.send('Driver may change status every 2 hours and more');
 	} else {
 	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
@@ -115,7 +116,26 @@ let sendDriverToMatching = (driver, res) => {
       	  throw err;
       	} else if (result.activity) {
 	      console.log(match.data);
-	      res.send(match.data);
+	      res.send(match.data);	// send details of user to driver
+	      let driver = { 
+	      	driverId: result.driverId,
+	      	name: result.name,
+	      	phone: result.phone,
+	      	location: {	// location will be destination of passenger
+	      		x: match.data.destLocation.x,	
+	      		y: match.data.destLocation.y,
+	      	},
+	      	activity: 1,
+	      	availability: 0,	// not available (with passengers)
+	      };
+	      // make driver unavailable
+	      db.updateDriver(driver, (err, result) => {
+	   		if (err) {
+	   	      throw err;
+	   	    } else {
+	   	      console.log(`Driver ${driver.driverId} has become unavailable`);
+	   	    }
+	      }); 
       	}
       	sendsAnswerToMatch(Number(driver.driverId), result.activity, result.availability);
       })
@@ -123,7 +143,6 @@ let sendDriverToMatching = (driver, res) => {
     .catch(err => {
   	  throw err;
     });
-
   } else {	// driver is inactive, just post to Matching
   	let params = {
       driverId: driver.driverId,
@@ -178,7 +197,11 @@ app.post('/pricing', (req, res) => {
     });
     // increase creation of online drivers, decrease creation of offline drivers
     global.creationOfOnlineDriversTime *= 1.1;
-    global.creationOfOfflineDriversTime *= 0.9;  
+    global.creationOfOfflineDriversTime *= 0.9; 
+    // if current surge ratio smaller than previous surge ratio, return to normal 
+  } else if (global.surgeRatio && global.surgeRatio > req.body.data.surgeRatio) {
+    global.creationOfOnlineDriversTime = 1;
+    global.creationOfOfflineDriversTime = 1;     
   }
   global.surgeRatio = req.body.data.surgeRatio;   
 })
