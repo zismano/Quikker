@@ -1,4 +1,6 @@
 config.js
+newrelic.js
+google-services.json
 
 ### macOS ###
 *.DS_Store
