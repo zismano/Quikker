@@ -2,6 +2,7 @@ const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('../database/indexMongo.js');
+const cache = require('../database/indexRedis.js');
 const push = require('../helpers/awsPush.js');
 //const drivers = require('../client/src/drivers.js');
 
@@ -12,13 +13,7 @@ app.use(bodyParser.json());
 global.surgeRatio = undefined;
 
 app.get('/bla', (req, res) => {
-     //  results = [{name: 'Ofir Zisman', phone: '+14084105813'}, {name: 'Emma Liu', phone:'+14084105813'}]
-     //  results.forEach(result => {
-    	// console.log(result);
-    	// push.sendSMS(result.name, result.phone);
-     //  });
      db.countDriversByQuery2();
-
 });
 
 app.get('/cars', (req, res) => {
@@ -39,35 +34,19 @@ app.get('/cars', (req, res) => {
 	} else if (!message && ((new Date() - result.updated_at) / 1000 / 3600) < 2) { // last update 2 hours ago
 	  res.send('Driver may change status every 2 hours and more');
 	} else {
-	  let driver = createDriver(result.driverId, result.name, result.phone, req.query.location.x, req.query.location.y, req.query.activity, req.query.availability);
-
-	   db.updateDriver(driver, (err, result) => {
-	   	if (err) {
+	  let location = JSON.parse(req.query.location);
+	  let driver = createDriver(result.driverId, result.name, result.phone, location.x, location.y, req.query.activity, req.query.availability);
+	  db.updateDriver(driver, (err, result) => {
+	    if (err) {
 	   	  throw err;
 	   	} else {
-	//   	  // SNS (notification) to Matching/Trips
-	//   	  // doSomething()
-	   	  if (reqActivity) {
-	// //	    res.send('Driver turned online');
-	// 		console.log('Driver turned online');
-			sendDriverToMatching(driver, res);
-		}
-	// 	    // if response contains user's info (there's a match) send OK
-	// 	  } else {
- //    // 	    res.send('Driver turned offline');
- //    		console.log('Driver turned offline');	
-	// 	  } 
-	//     }
-	//   })
-	//  if (!driver.activity) {
-	//  	res.send(`${driver.driverId} is no longer active`);
-	//  }
-	  //sendDriverToMatching(driver, res);	// Matching is service. It sends to service, even if driver became inactive
-	}
-  })
-};
+		  sendDriverToMatching(driver, res);
+		  }
+	    })
+     // })
+    };
+  });
 });
-})
 
 let sendStatusNumbersToPricing = () => {
  // let startTime = new Date();
@@ -102,6 +81,9 @@ let sendStatusNumbersToPricing = () => {
 let sendDriverToMatching = (driver, res) => {
   // if driver became active, he waits to a match
   if (Number(driver.activity)) {
+  	let data = {};
+  	data.message = `driver ${driver.driverId} waits for a match`;
+  	res.send(data);	// sending to driver indication that he is waiting to match
     axios.get('http://127.0.0.1:5000/available/cars', {
       params: {
         driverId: driver.driverId,
@@ -117,35 +99,23 @@ let sendDriverToMatching = (driver, res) => {
       },
     })
     .then(match => {
-      // check in DB/cache that driver not become offline when he waited for a match
-      db.getDriverStatus({ driverId: Number(driver.driverId) }, (err, result) => {
+      match = match.data;
+      let start = new Date();
+      // new version -  store match in cache
+      cache.redisClient.hmset([
+      	driver.driverId, 
+      	"userId", match.userId, 
+      	"srcX", match.srcLocation.x, 
+      	"srcY", match.srcLocation.y, 
+      	"destX", match.destLocation.x, 
+      	"destY", match.destLocation.y
+      ], (err, result) => {
       	if (err) {
-      	  throw err;
-      	} else if (result.activity) {
-	      console.log(match.data);
-	      res.send(match.data);	// send details of user to driver
-	      let driver = { 
-	      	driverId: result.driverId,
-	      	name: result.name,
-	      	phone: result.phone,
-	      	location: {	// location will be destination of passenger
-	      		x: match.data.destLocation.x,	
-	      		y: match.data.destLocation.y,
-	      	},
-	      	activity: 1,
-	      	availability: 0,	// not available (with passengers)
-	      };
-	      // make driver unavailable
-	      db.updateDriver(driver, (err, result) => {
-	   		if (err) {
-	   	      throw err;
-	   	    } else {
-	   	      console.log(`Driver ${driver.driverId} has become unavailable`);
-	   	    }
-	      }); 
+      		throw err;
+      	} else {
+     	  console.log(`Insert ${driver.driverId} id to matching cache, duration: ${(new Date - start) / 1000}s`);     		
       	}
-      	sendsAnswerToMatch(Number(driver.driverId), result.activity, result.availability);
-      })
+      });
     })
     .catch(err => {
   	  throw err;
@@ -212,31 +182,77 @@ app.post('/pricing', (req, res) => {
   drivers.changeDriversInterval(global.creationOfOnlineDriversTime, global.creationOfOfflineDriversTime); 
 })
 
+app.get('/wait', (req, res) => {
+   // check in cache for match of driver
+   let start = new Date();
+   cache.redisClient.hgetall(req.query.driverId, function(err, object) {
+     if (err) {
+     	throw err;
+     }
+     console.log(`Duration check if ${req.query.driverId} is in cache: ${(new Date() - start) / 1000}s`);
+     console.log(object);
+     console.log(`DestX: ${object.destX}, DestY: ${object.destY}`);
+     let data = {};
+     data.message = `driver ${req.query.driverId} waits for a match`;
+     if (!object) {
+  	   res.send(data);	// sending to driver indication that he is waiting to match
+     } else { // match
+     // delete match from cache
+     cache.redisClient.del(req.query.driverId);
+     // get driver's status
+     db.getDriverStatus({ driverId: Number(req.query.driverId) }, (err, result) => {
+      if (err) {
+        throw err;
+      } else if (result.activity) {	// driver hasn't become offline
+         // send match to driver
+        data.message = 'match is found';
+        data.match = object;
+	    res.send(data);	// send details of user to driver
+	     // update driver's status to not available
+	     let driver = { 
+	      	driverId: req.query.driverId,
+	      	name: result.name,
+	      	phone: result.phone,
+	      	location: {	// location will be destination of passenger
+	      		x: object.destX,	
+	      		y: object.destY,
+	      	},
+	      	activity: 1,
+	      	availability: 0,	// not available (with passengers)
+	      };
+	      db.updateDriver(driver, (err, result) => {
+	   		if (err) {
+	   	      throw err;
+	   	    } else {
+	   	      console.log(`Driver ${driver.driverId} has become unavailable`);
+	   	    }
+	      }); 
+        // if offline
+         // send res to driver with message 'driver <driverId> is offline'
+      	} else {
+		  data.message = 'driver is offline';       	  
+		  res.send(data);	
+      	}
+      	// send matching ok for match // offline  to matching
+      	sendsAnswerToMatch(Number(req.query.driverId), result.activity, result.availability);
+      })
+     }
+   });
+});
+
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
   return ({
   	driverId,
   	name,
   	phone,
   	location: {
-  	  x: locationX,
-  	  y: locationY,
+  		x: locationX,
+  		y: locationY,
   	},
   	activity,
   	availability,
   })
 }
-    // update cache
-    // update other services
-//    req.get('/')
-    // if request was to become offline -> send OK, else, send match
- //    res.send({userId, userLocation, userDestination});	  	
- //  } else {
-	// res.send('Request failed due to ...');
- //  }
-//db.countByActivity();
-//ex.start();
-
-//db.updateDriver(d);
 
 
 app.listen(3000);
