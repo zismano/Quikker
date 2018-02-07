@@ -2,13 +2,6 @@ const axios = require('axios');
 const faker = require('faker');
 const helpers = require('../../helpers/helpers.js');
 
-// global.creationOfOnlineDriversTime = 100;
-// global.creationOfOfflineDriversTime = 100;
-// global.velocity = 25; // mph
-// global.factor = 0.001;  
-//const x = 1000;
-//const y = 1000;
-
 // offline driver can turn to online and available
 // online driver and available can turn to offline
 // gets 2nd argument only after driver finished a ride and became available
