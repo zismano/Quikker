@@ -9,6 +9,44 @@ redisClient.on('error',function() {
  console.log("Error in Redis");
 });
 
-redisClient.hmset([1, "availability", 1, "activity", 1, "locationX", 738 ,"locationY", 286], function (err, res) {});
-redisClient.hmset([2, "availability", 1, "activity", 1, "locationX", 2, "locationY", 2], function (err, res) {});
-redisClient.hmset([4, "availability", 0, "activity", 1, "locationX", 159 ,"locationY", 559], function (err, res) {});
+let createMatch = (driverId) => {
+  let obj = {
+    driverId,
+	userId: driverId,
+	srcX: Math.floor(Math.random() * 1000),
+	srcY: Math.floor(Math.random() * 1000),
+	destX: Math.floor(Math.random() * 1000),
+	destY: Math.floor(Math.random() * 1000),
+  }
+  return obj;
+}
+
+let populateCache = (driverId, start) => {
+  let match = createMatch(driverId);
+  redisClient.hmset([
+  	driverId, 
+  	"userId", match.userId, 
+  	"srcX", match.srcX,
+  	"srcY", match.srcY,
+  	"destX", match.destX,
+  	"destY", match.destY
+  ], function (err, res) {
+  	if (err) {
+  		console.log(err);
+  	} else if (driverId === 1000000) {
+  		console.log(`Populate cache with ${driverId} docs in ${(new Date - start) / 1000}s`);
+  	} else {
+  		if (driverId % 100000 === 0) {
+  			console.log(`Entered ${driverId} docs`);
+  		}
+  		populateCache(driverId + 1, start);
+  	}
+
+  });
+};
+
+//populateCache(1, new Date());
+
+module.exports = {
+  redisClient,
+};
