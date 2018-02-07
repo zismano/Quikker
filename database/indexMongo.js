@@ -7,21 +7,23 @@ const db = mongoClient.connect(url);
 
 let updateDriver = (driver, callback) => {
   let start = new Date();
+  console.log(`Dest: ${driver.location.x}`);
+  console.log(`Dest Numb X: ${Number(driver.location.x)}`);
   db.then(db => {
     var dbase = db.db('cars');
     var collection = dbase.collection('drivers');
     collection.update(
-      { driverId: driver.driverId },
+      { driverId: Number(driver.driverId) },
       { updated_at: new Date(),
-        driverId: driver.driverId,
+        driverId: Number(driver.driverId),
         name: driver.name,
         phone: driver.phone,
         location: {
-          x: driver.location.x,
-          y: driver.location.y,
+         x: Number(driver.location.x),
+         y: Number(driver.location.y),
         },
-        activity: driver.activity,
-        availability: driver.availability }, (err, result) => {
+        activity: Number(driver.activity),
+        availability: Number(driver.availability) }, (err, result) => {
           if (err) {
             callback(err);
           } else {
@@ -184,6 +186,6 @@ module.exports = {
   countDriversByQuery,
   getDriverStatus,
   getOfflineDrivers,
-  countDriversByQuery2,
+//  countDriversByQuery2,
 
 };
