@@ -1,28 +1,30 @@
+const newrelic = require('newrelic');
 const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
+
 const db = require('../database/indexMongo.js');
 const cache = require('../database/indexRedis.js');
 const push = require('../helpers/awsPush.js');
 //const drivers = require('../client/src/drivers.js');
+const helpers = require('../helpers/helpers.js');
 
 const app = express();
 
 app.use(bodyParser.json());
 
-global.surgeRatio = undefined;
+//global.surgeRatio = undefined;
 
 app.get('/bla', (req, res) => {
      db.countDriversByQuery2();
 });
 
 app.get('/cars', (req, res) => {
-// console.log(req);
   console.log(req.query);
   let message = req.query.message; // defined only if driver becomes available 
   let reqActivity = Number(req.query.activity);
   // check in cache if needs to update, if yes - update cache, send updates to other services, send success to driver
-  db.getDriverStatus({driverId: Number(req.query.driverId)}, (err, result) => {
+  db.getDriverStatus( {driverId: Number(req.query.driverId) }, (err, result) => {
   	if (err) {
   	  throw err;
   	} else if (!message && reqActivity === result.activity && reqActivity) {
@@ -43,9 +45,8 @@ app.get('/cars', (req, res) => {
 		  sendDriverToMatching(driver, res);
 		  }
 	    })
-     // })
-    };
-  });
+      };
+   });
 });
 
 let sendStatusNumbersToPricing = () => {
@@ -158,8 +159,8 @@ app.post('/pricing', (req, res) => {
   console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
   res.send('Success receiving surge ratio');
   // current surge ratio greater than previous surge ratio
-  if (global.surgeRatio && global.surgeRatio < req.body.data.surgeRatio) {
-  	let ratio = (req.body.data.surgeRatio - global.surgeRatio) * 6;	// *10000 instead of *6
+  if (helpers.surgeRatio && helpers.surgeRatio < req.body.data.surgeRatio) {
+  	let ratio = (req.body.data.surgeRatio - helpers.surgeRatio) * 6;	// *10000 instead of *6
     // send push notifications to X offline drivers
   	db.getOfflineDrivers(ratio, (err, results) => {
       if (err) {
@@ -171,15 +172,15 @@ app.post('/pricing', (req, res) => {
       });
     });
     // increase creation of online drivers, decrease creation of offline drivers
-    global.creationOfOnlineDriversTime /= 1.1;
-    global.creationOfOfflineDriversTime *= 1.1; 
+    helpers.creationOfOnlineDriversTime /= 1.1;
+    helpers.creationOfOfflineDriversTime *= 1.1; 
     // if current surge ratio smaller than previous surge ratio, return to normal 
-  } else if (global.surgeRatio && global.surgeRatio >= req.body.data.surgeRatio) {
-    global.creationOfOnlineDriversTime = 1;
-    global.creationOfOfflineDriversTime = 1;     
+  } else if (helpers.surgeRatio && helpers.surgeRatio >= req.body.data.surgeRatio) {
+    helpers.creationOfOnlineDriversTime = 1;
+    helpers.creationOfOfflineDriversTime = 1;     
   }
-  global.surgeRatio = req.body.data.surgeRatio;
-  drivers.changeDriversInterval(global.creationOfOnlineDriversTime, global.creationOfOfflineDriversTime); 
+  helpers.surgeRatio = req.body.data.surgeRatio;
+  drivers.changeDriversInterval(helpers.creationOfOnlineDriversTime, helpers.creationOfOfflineDriversTime); 
 })
 
 app.get('/wait', (req, res) => {
@@ -209,17 +210,7 @@ app.get('/wait', (req, res) => {
         data.match = object;
 	    res.send(data);	// send details of user to driver
 	     // update driver's status to not available
-	     let driver = { 
-	      	driverId: req.query.driverId,
-	      	name: result.name,
-	      	phone: result.phone,
-	      	location: {	// location will be destination of passenger
-	      		x: object.destX,	
-	      		y: object.destY,
-	      	},
-	      	activity: 1,
-	      	availability: 0,	// not available (with passengers)
-	      };
+	     let driver = createDriver(req.query.driverId, result.name, result.phone, object.destX, object.destY, 1, 0);
 	      db.updateDriver(driver, (err, result) => {
 	   		if (err) {
 	   	      throw err;
@@ -242,15 +233,15 @@ app.get('/wait', (req, res) => {
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
   return ({
-  	driverId,
+  	driverId: Number(driverId),
   	name,
   	phone,
   	location: {
-  		x: locationX,
-  		y: locationY,
+  		x: Number(locationX),
+  		y: Number(locationY),
   	},
-  	activity,
-  	availability,
+  	activity: Number(activity),
+  	availability: Number(activity),
   })
 }
 

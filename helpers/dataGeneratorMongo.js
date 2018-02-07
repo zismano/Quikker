@@ -11,33 +11,15 @@ let populateDB = function(start, end, duration) {
   let batch = 50000;
   populateDrivers(start * batch, end * batch, (err, results) => {
     if (err) {
-      console.log(err);
+      throw err;
     } else {
-      start++;
       // make it 200 times (recursive call to function)
-      if (start === 200) {
+      if (++start === 200) {
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
         db.then(db => {
-          const dbase = db.db('cars');
-          const collection = dbase.collection('drivers');
-          // creating index of activity
-          collection.createIndex("activity", (err, result) => {
-            if (err) {
-              console.log(err);
-              return;
-            } else {
-              console.log('Add index activity');
-              // creating index of availability
-              collection.createIndex("availability", (err, result) => {
-                if (err) { 
-                  console.log(err);
-                } else {
-                  console.log('Add index availability');
-                  return;            
-                }
-              });
-            }
-          });
+          const collection = db.db('cars').collection('drivers');
+          let columns = (["driverId", "activity", "availability"]);
+          addIndexes(collection, columns, 0);
         });
       } else {
         populateDB(start, start + 1, duration);      
@@ -46,11 +28,26 @@ let populateDB = function(start, end, duration) {
   })
 }
 
+let addIndexes = (collection, columns, numOfIndexInserted) => {
+  if (columns.length === numOfIndexInserted) {
+    console.log('Finished adding indexes');
+    return;
+  } else {
+    collection.createIndex(columns[numOfIndexInserted], (err, result) => {
+      if (err) {
+        throw err;
+      } else {
+        console.log(`Add index ${columns[numOfIndexInserted]}`);
+        addIndexes(collection, columns, numOfIndexInserted + 1);
+      }
+    })
+  }
+}
+
 // populates drivers collection with 50K rows
 let populateDrivers = (index, documentNumber, callback) => {
 	db.then(db => {
-	  const dbase = db.db('cars');   
-	  const collection = dbase.collection('drivers');
+	  const collection = db.db('cars').collection('drivers');
 	  const batchNumber = documentNumber - index;
 	  const start = new Date();
 	  let batchDocuments = [];
@@ -60,7 +57,7 @@ let populateDrivers = (index, documentNumber, callback) => {
 	    if ((index + 1) % batchNumber === 0) {
 	      collection.insert(batchDocuments, (err, result) => {
 	        if (err) {
-	          console.log(err);
+	          callback(err);
 	        } else {
 	          batchDocuments = [];
 	          callback(null, result);
@@ -72,7 +69,6 @@ let populateDrivers = (index, documentNumber, callback) => {
 	      console.log(`Inserted ${index} documents.`);
 	    }
 	  }
-	//  db.close();
 	});
 };
 
