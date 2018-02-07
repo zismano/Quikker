@@ -2,7 +2,6 @@
 const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
-//const path = require('path'); 
 
 const app = express();
 
@@ -30,5 +29,5 @@ let sendSurgeRatio = surgeRatio => {
 
 app.listen(4000);
 
-sendSurgeRatio(3.5);
+//sendSurgeRatio(3.5);
 
