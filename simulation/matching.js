@@ -11,7 +11,7 @@ app.post('/available/cars', (req, res) => {
   if (req.body.params.message === 'Match') {
     console.log('Match');
   } else if (req.body.params.message === 'No match') {
-    console.log('Driver turned offline before he got matched');
+    console.log(`Driver ${req.body.params.driverId} turned offline before he got matched`);
   } else if (req.body.params.message === 'Driver is offline') {
     console.log(`Driver ${req.body.params.driverId} has activity: ${req.body.params.activity}`);
     res.send(`Updated that driver id = ${req.body.params.driverId} is offline`);
