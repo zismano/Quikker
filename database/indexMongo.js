@@ -1,34 +1,30 @@
 const mongoClient = require('mongodb').MongoClient;
-//const helpers = require('../helpers/dataGeneratorMongo.js');
 
 const url = "mongodb://localhost:27017/";
 
 const db = mongoClient.connect(url);
 
 let updateDriver = (driver, callback) => {
-  let start = new Date();
-  console.log(`Dest: ${driver.location.x}`);
-  console.log(`Dest Numb X: ${Number(driver.location.x)}`);
   db.then(db => {
-    var dbase = db.db('cars');
-    var collection = dbase.collection('drivers');
+    let start = new Date();
+    var collection = db.db('cars').collection('drivers');
     collection.update(
-      { driverId: Number(driver.driverId) },
+      { driverId: driver.driverId },
       { updated_at: new Date(),
-        driverId: Number(driver.driverId),
+        driverId: driver.driverId,
         name: driver.name,
         phone: driver.phone,
         location: {
-         x: Number(driver.location.x),
-         y: Number(driver.location.y),
+         x: driver.location.x,
+         y: driver.location.y,
         },
-        activity: Number(driver.activity),
-        availability: Number(driver.availability) }, (err, result) => {
+        activity: driver.activity,
+        availability: driver.availability }, (err, result) => {
           if (err) {
             callback(err);
           } else {
             console.log(`Update time: ${(new Date() - start) / 1000} s`);
-            callback(null, result);
+              callback(null, result);
           }
         }
     )
@@ -38,31 +34,22 @@ let updateDriver = (driver, callback) => {
   })
 };
 
-// result of query with 
-const driver = {
-  driverId: 99999,
-  name: 'Good Weekend',
-  phone: '650 000 0000',
-  location: {
-    x:50,
-    y:100
-  },
+let d = {
+  driverId: 10000000,
+  name: 'Ofir',
+  phone: '03535353',
+  location: { x: 2, y: 7},
   activity: 1,
-  availability: 1
-};
+  availability: 0
+}
 
-//updateDriver(driver);
-// In mongoDB shell after invoking updateDriver(driver)
-//> db.drivers.find({driverId: 99999});
-//{ "_id" : ObjectId("5a74fc734d2421c019a75c40"), "updated_at" : ISODate("2018-02-03T00:10:16.979Z"), "driverId" : 99999, "name" : "Good Weekend", "phone" : "650 000 0000", "location" : { "x" : 50, "y" : 100 }, "activity" : 1, "availability" : 1 }
 
 
 // to count active or available drivers e.g {activity: 1}
 let countDriversByQuery = (params, callback) => {
   let start = new Date();
   db.then(db => {
-    var dbase = db.db('cars');
-    var collection = dbase.collection('drivers');
+    var collection = db.db('cars').collection('drivers');
     collection.find(params).count((err, result) => {
       if (err) {
         console.log(err);
@@ -78,40 +65,44 @@ let countDriversByQuery = (params, callback) => {
   });
 }
 
-// let countDriversByQuery2 = function() {
-//   let start = new Date();
-//   db.then(db => {
-//     var dbase = db.db('cars');
-//     var collection = dbase.collection('drivers');
-//     collection.mapReduce(
-//       function () {
-//           emit(1, this.availability)
-//       },
-//       function (key, values) {
-//         return Array.sum(values)
-//       },
-//       { 
-//         query: { status: "activity"},
-//        //  out: "online_total" 
-//         out: { inline: 1 }
-//       },
-//    //   { out: { inline: 1 } },
-//       function (err, result) {
-//           if (err) {
-//             console.log(err);
-//           } else {
-//             console.log(result);
-//           }
-//          // db.close();
-//       }
-//     );
-//   })
-// }
+// 1s each
+//countDriversByQuery({activity: 1, availability: 0});
+
+
+// 29s with mapReduce
+let countDriversByQuery2 = function() {
+  let start = new Date();
+  db.then(db => {
+    var collection = db.db('cars').collection('drivers');
+    collection.mapReduce(
+      function () {
+          emit(this.availability, 1)
+      },
+      function (key, values) {
+        return Array.sum(values)
+      },
+      { 
+        query: { "activity": 1},
+        out: { inline: 1 }
+      },
+      function (err, result) {
+          if (err) {
+            console.log(err);
+          } else {
+            console.log(`Duration ${(new Date() - start) / 1000}s`);
+            console.log(result);
+          }
+      }
+    );
+  })
+}
+//countDriversByQuery2();
+
+
 
 let getDriverStatus = (params, callback) => {
   db.then(db => {
-    var dbase = db.db('cars');
-    var collection = dbase.collection('drivers');
+    var collection = db.db('cars').collection('drivers');
     collection.findOne(params, (err, result) => {
       if (err) {
         callback(err);
@@ -129,8 +120,7 @@ let getDriverStatus = (params, callback) => {
 let getOfflineDrivers = (num, callback) => {
   let start = new Date();
   db.then(db => {
-    var dbase = db.db('cars');
-    var collection = dbase.collection('drivers');
+    var collection = db.db('cars').collection('drivers');
     collection.find({activity: 0}, {"limit": num}).toArray((err, result) => {
       if (err) {
         callback(err);
@@ -153,8 +143,7 @@ let getOfflineDrivers = (num, callback) => {
 let countByActivity = () => {
   let start = new Date();
   db.then(db => {
-    var dbase = db.db('cars');
-    var collection = dbase.collection('drivers');
+    var collection = db.db('cars').collection('drivers');
     collection.aggregate([
         {
           $group: {
@@ -180,12 +169,27 @@ let countByActivity = () => {
 //countByActivity();
 //countDriversByQuery({activity: 1})
 
+// function written only for tests...
+// let insertDriver = function(driver, callback) {
+//   db.then(db => {
+//     let start = new Date();
+//     var collection = db.db('cars').collection('drivers');
+//     collection.insert(driver, (err, result) => {
+//       if err {
+//         callback(err);
+//       } else {
+//         callback(null, result);
+//       }
+//     }) 
+//   })
+// }
+
 module.exports = {
   db,
   updateDriver,
   countDriversByQuery,
   getDriverStatus,
   getOfflineDrivers,
-//  countDriversByQuery2,
-
+  countDriversByQuery2,
+ // insertDriver
 };
