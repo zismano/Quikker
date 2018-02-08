@@ -97,4 +97,6 @@ const x = 1000;
 const y = 1000;
 
 // invocation of population of DB
-populateDB(0, 1, new Date());
+//var populate = function() {
+  populateDB(0, 1, new Date());
+//}
