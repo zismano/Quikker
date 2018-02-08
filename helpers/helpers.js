@@ -7,12 +7,28 @@ const velocity = 25; // mph
 const factor = 0.001;
 let surgeRatio;
 
-module.exports - {
+let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
+  return ({
+  	updated_at: new Date(),
+  	driverId: Number(driverId),
+  	name,
+  	phone,
+  	location: {
+  		x: Number(locationX),
+  		y: Number(locationY),
+  	},
+  	activity: Number(activity),
+  	availability: Number(availability),
+  })
+}
+
+module.exports = {
   x,
   y,
   creationOfOnlineDriversTime,
   creationOfOfflineDriversTime,
   velocity,
   factor,
-  surgeRatio
+  surgeRatio,
+  createDriver,
 }
