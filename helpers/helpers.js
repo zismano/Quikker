@@ -6,6 +6,7 @@ let creationOfOfflineDriversTime = 100;
 const velocity = 25; // mph
 const factor = 0.001;
 let surgeRatio;
+const numDrivers = 10000000;
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
   return ({
@@ -40,8 +41,6 @@ let createRandomDriver = (driverId, maxX, maxY) => {
   })
 }
 
-//let convertFromSiege = driver => createDriver(driver.driverId, driver.name, driver.phone, driver.locationX, driver.locationY, driver.activity, driver.availability);
-
 module.exports = {
   x,
   y,
@@ -52,6 +51,6 @@ module.exports = {
   surgeRatio,
   createDriver,
   createRandomDriver,
- // convertFromSiege,
   generateAvailability,
+  numDrivers,
 }

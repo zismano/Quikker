@@ -2,8 +2,6 @@ const axios = require('axios');
 const faker = require('faker');
 const helpers = require('../../helpers/helpers.js');
 
-// offline driver can turn to online and available
-// online driver and available can turn to offline
 // gets 2nd argument only after driver finished a ride and became available
 function getStatusFromDriver(endpoint, driver, availableAfterRide) {
   axios.get(`http://127.0.0.1:3000/${endpoint}`, {
@@ -18,8 +16,8 @@ function getStatusFromDriver(endpoint, driver, availableAfterRide) {
       message: availableAfterRide,
     }
   })
-  .then(res => {
-    if (res.data.message === 'match is found') {  // if response contains user's info (there's a match)
+  .then(res => { 
+    if (res.data.message === 'match is found') { 
       handleMatch(driver, res.data.match);
     } else if (res.data.message === `driver ${driver.driverId} waits for a match`) {
       setTimeout(() => {
@@ -32,16 +30,17 @@ function getStatusFromDriver(endpoint, driver, availableAfterRide) {
   .catch(err => { throw err });
 }
 
-let handleMatch = (driver, match) => {
-  //  wait duration and then available
-  // sqrt( (x2-x1)^2 + (y2-y1)^2 ) 
+let handleMatch = (driver, match) => {  //  wait duration and then make available
+  let duration = calculateDurationFromDriverToDestination(driver, match); 
+  console.log(`Duration of ride of driver: ${driver.driverId} and ${match.userId} is ${Math.round(duration)} minutes`);
+  // set time out to make driver available again  
+  setTimeout(() => makeDriverAvailableAgain(driver, match), duration * 60 * 1000); //3600*1000
+};
+
+let calculateDurationFromDriverToDestination = (driver, match) => {
   let distanceToPassenger = Math.sqrt(Math.pow(driver.location.x - match.srcX, 2) + Math.pow(driver.location.y - match.srcY, 2));
   let distanceSrcToDest = Math.sqrt(Math.pow(match.destX - match.srcY, 2) + Math.pow(match.destY - match.srcY, 2));
-  let duration = (distanceToPassenger + distanceSrcToDest) * helpers.factor / helpers.velocity * 60;
-  console.log(`Duration of ride of driver: ${driver.driverId} and ${match.userId} is ${Math.round(duration)} minutes`);
-  // set time out to make driver available again
-  // when setTimeout is done, driver needs to become available again, update database and send availability to matcihng/trips   
-  setTimeout(() => makeDriverAvailableAgain(driver, match), duration * 60 * 1000); //3600*1000
+  return ((distanceToPassenger + distanceSrcToDest) * helpers.factor / helpers.velocity * 60); 
 }
 
 let makeDriverAvailableAgain = (driver, match) => {
@@ -51,52 +50,34 @@ let makeDriverAvailableAgain = (driver, match) => {
   getStatusFromDriver('cars', driver, 'available after ride');
 }
 
-let turnDriverActiveAndSendToService = () => {
-  getStatusFromDriver('cars', turnDriverActive());   
-}
-
-let turnDriverInactive = () => {
+let turnDriverStatus = status => {
+  let x = status ? Math.floor(Math.random() * helpers.x) : -1;
+  let y = status ? Math.floor(Math.random() * helpers.y) : -1;
   let driver = {
     driverId: Math.floor(Math.random() * 10000000) + 1, // 1-10,000,000
     location: {
-      x: -1,
-      y: -1,
-    },   
-    activity: 0,
-    availability: 0,
+      x,
+      y,
+    },
+    activity: status,
+    availability: status,
   };
-  getStatusFromDriver('cars', driver); 
+
+  getStatusFromDriver('cars', driver);
 };
 
-// randomize driverId, and make driver online if he was offline
-let turnDriverActive = () => {  
-  let driver = {
-    driverId: Math.floor(Math.random() * 10000000) + 1, // 1-10,000,000
-    location: {
-      x: Math.floor(Math.random() * helpers.x),
-      y: Math.floor(Math.random() * helpers.y),
-    },   
-    activity: 1,
-    availability: 1,
-  };
-  return driver;
-};
+setInterval(() => {
+ // console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
+  turnDriverStatus(1);
+  }, helpers.creationOfOnlineDriversTime * 1);
 
-// setInterval(() => {
-//  // console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
-//   turnDriverActiveAndSendToService();
-//   }, helpers.creationOfOnlineDriversTime * 100);
-
-// setInterval(() => turnDriverInactive(), helpers.creationOfOfflineDriversTime * 100);
+ setInterval(() => turnDriverStatus(0), helpers.creationOfOfflineDriversTime * 1);
 
 let changeDriversInterval = (onlineDriversTime, offlineDriversTime) => {
   helpers.creationOfOnlineDriversTime = onlineDriversTime;
   helpers.creationOfOfflineDriversTime = offlineDriversTime; 
-}; 
+};
 
 module.exports = {
   changeDriversInterval,
-  turnDriverActive
-}
-
-
+};

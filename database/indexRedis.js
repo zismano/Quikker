@@ -9,7 +9,7 @@ redisClient.on('error',function() {
  throw "Error in Redis";
 });
 
-// helper functino for populating cache
+// helper function for populating cache
 let createMatch = (driverId) => {
   let obj = {
     driverId,

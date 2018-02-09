@@ -32,17 +32,6 @@ let updateDriver = (driver, database, col, callback) => {
   .catch(err => {throw err})
 };
 
-let d = {
-  driverId: 10000000,
-  name: 'Ofir',
-  phone: '03535353',
-  location: { x: 2, y: 7},
-  activity: 1,
-  availability: 0
-}
-
-
-
 // to count active or available drivers e.g {activity: 1}
 let countDriversByQuery = (params, database, col, callback) => {
   let start = new Date();
@@ -52,7 +41,7 @@ let countDriversByQuery = (params, database, col, callback) => {
       if (err) {
         callback(err);
       } else {
-  //      console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
+        console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
         callback(null, result);
       }
     });
