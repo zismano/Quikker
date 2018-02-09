@@ -11,7 +11,7 @@ describe('Databases', function() {
 
     it('inserts a driver', function(done) {
       mongo.db.then(db => {
-        var collection = db.db('cars').collection('drivers');
+        var collection = db.db('testDB').collection('testCol');
         collection.insert(driver, (err, result) => {
           expect(result.insertedCount).to.equal(1);
           done();
@@ -21,15 +21,15 @@ describe('Databases', function() {
 
     it('reads a driver by id, if no match returns null', function(done) {
       mongo.db.then(db => {
-        var collection = db.db('cars').collection('drivers');
+        var collection = db.db('testDB').collection('testCol');
         collection.drop((err, result) => {
           if (err) throw err;      
-          mongo.getDriverStatus({driverId: 1}, (err, result) => {
+          mongo.getDriverStatus({driverId: 1}, 'testDB', 'testCol', (err, result) => {
             if (err) throw err;
             expect(result).to.equal(null);
             collection.insert(driver, (err, result) => {
               if (err) throw err;
-              mongo.getDriverStatus({driverId: 1}, (err, result) => {
+              mongo.getDriverStatus({driverId: 1}, 'testDB', 'testCol', (err, result) => {
                 if (err) throw err;
                 expect(result.name).to.equal("John Smith");            
                 done();      
@@ -42,7 +42,7 @@ describe('Databases', function() {
 
     it('updates a driver by id', function(done) {
       mongo.db.then(db => {
-        var collection = db.db('cars').collection('drivers');
+        var collection = db.db('testDB').collection('testCol');
         let newDriver = { 
           updated_at: new Date(),
           driverId: 1,
@@ -55,9 +55,9 @@ describe('Databases', function() {
           activity: 0,
           availability: 0,
         };
-        mongo.updateDriver(newDriver, (err, result) => {
+        mongo.updateDriver(newDriver, 'testDB', 'testCol', (err, result) => {
           if (err) throw err;
-          mongo.getDriverStatus({driverId: 1}, (err, newresult) => {
+          mongo.getDriverStatus({driverId: 1}, 'testDB', 'testCol', (err, newresult) => {
             if (err) throw err;
             expect(newresult.name).to.equal("Jane Smith");
             done();   
@@ -68,7 +68,7 @@ describe('Databases', function() {
 
     it('counts active drivers', function(done) {
       mongo.db.then(db => {
-        var collection = db.db('cars').collection('drivers');
+        var collection = db.db('testDB').collection('testCol');
         collection.drop((err, result) => {
           if (err) throw err;
           let driver2 = helpers.createDriver(2, "Number 2", "543-222", 5, 999, 1, 0);
@@ -76,7 +76,7 @@ describe('Databases', function() {
           let driver4 = helpers.createDriver(4, "Number 4", "543-444", 55, 111, 0, 0);
           collection.insert([driver2, driver3, driver4], (err, result) => {
             if (err) throw err;
-            mongo.countDriversByQuery({activity: 1}, (err, count) => {
+            mongo.countDriversByQuery({activity: 1}, 'testDB', 'testCol', (err, count) => {
               if (err) throw err;
               expect(count).to.equal(2);
               done();
@@ -88,7 +88,7 @@ describe('Databases', function() {
 
     it('returns maximum number of offline drivers given as input', function(done) {
      mongo.db.then(db => {
-        var collection = db.db('cars').collection('drivers');
+        var collection = db.db('testDB').collection('testCol');
         collection.drop((err, result) => {
           if (err) throw err;
           let driver2 = helpers.createDriver(2, "Number 2", "543-222", 5, 999, 1, 0);
@@ -98,7 +98,7 @@ describe('Databases', function() {
           let driver6 = helpers.createDriver(6, "Number 6", "543-666", 22, 11, 0 ,0);
           collection.insert([driver2, driver3, driver4, driver5, driver6], (err, result) => {
             if (err) throw err;
-            mongo.getOfflineDrivers(10, (err, array) => {
+            mongo.getOfflineDrivers(10, 'testDB', 'testCol', (err, array) => {
               if (err) throw err;
               expect(array.length).to.equal(3);
               done();

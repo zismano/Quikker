@@ -17,13 +17,14 @@ describe('GET requests', function() {
   it('should send driver details to /cars', function(done) {
   	let driver = helpers.createDriver(11, "John Doe", "654-333", 50, 100, 1, 0);
   	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 200, 300, 1, 1);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
-  				 db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+  				 db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 			     expect(err).to.be.null;
 			     expect(res).to.have.status(200);
 			     expect(res.request.qs).to.eql(driver2);
@@ -32,32 +33,34 @@ describe('GET requests', function() {
   	})
   })
 
-  it('should send that driver is already online, according to his status', function(done) {
+  it('should notify that driver is already online, according to his status', function(done) {
   	let driver = helpers.createDriver(11, "John Doe", "654-333", 20, 300, 1, 0);
    	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 250, 350, 1, 1);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
-  				 db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+  				 db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 			     expect(res.text).to.eql('Driver is already online');
 			  });  	
   		})
   	})
   })
 
-  it('should send that driver is already offline, according to his status', function(done) {
+  it('should notify that driver is already offline, according to his status', function(done) {
   	let driver = helpers.createDriver(11, "John Doe", "654-333", 20, 300, 0, 0);
    	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 100, 100, 0, 0);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
-  				 db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+  				 db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 			     expect(res.text).to.eql('Driver is already offline');
 			  });  	
   		})
@@ -67,14 +70,15 @@ describe('GET requests', function() {
   it('should notify when driver is unavailable, when he tries to get offline', function(done) {
   	let driver = helpers.createDriver(11, "John Doe", "654-333", 20, 300, 1, 0);
    	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 100, 100, 0, 0);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
 			     expect(res.text).to.eql('Driver has passengers and cannot get offline');
-  				 db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+  				 db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 			  });  	
   		})
   	})
@@ -83,14 +87,15 @@ describe('GET requests', function() {
   it('should notify when driver tries to change status too often', function(done) {
   	let driver = helpers.createDriver(11, "John Doe", "654-333", 20, 300, 0, 0);
    	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 100, 100, 1, 1);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
 			     expect(res.text).to.eql('Driver may change status every 2 hours and more');
-  				 db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+  				 db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 			  });  	
   		})
   	})
@@ -110,15 +115,16 @@ describe('GET requests', function() {
       availability: 0,
     };
    	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 	      let driver2 = helpers.createDriver(11, "John Doe", "654-333", 100, 100, 1, 1);
+        driver2.test = true;
 		  chai.request(server)
 			  .get('/cars')
 			  .query(driver2)
 			  .end(function (err, res) {
 			  	res.text = JSON.parse(res.text)
 			     expect(res.text.message).to.eql(`driver 11 waits for a match`);
-           db.db('cars').collection('drivers').remove({driverId: 11}, () => done());
+           db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());
 
 			  });  	
   		})
@@ -126,27 +132,27 @@ describe('GET requests', function() {
   })
  })
 
- describe('/wait', function() {
-
-  // when there's still no match
-  xit('should send message to driver when still there\'s no match', function(done) {
+ describe('/wait', function() {   // when there's still no match
+  it('should send message to driver when still there\'s no match', function(done) {
    let driver = helpers.createDriver(11, "Jane Doe", "654-111", 11, 1, 1, 1);
-	 chai.request(server)
-	   .get('/wait')
-	   .query(driver)
-	   .end(function (err, res) {
-	     expect(err).to.be.null;
-	     expect(res).to.have.status(200);
-	     expect(res.body.message).to.eql('driver 11 waits for a match');
-	     db.db('cars').collection('drivers').remove({driverId: 11}, () => done());	              	
-	   });
+   cache.redisClient.del(11, (err, result) => {
+  	 chai.request(server)
+  	   .get('/wait')
+  	   .query(driver)
+  	   .end(function (err, res) {
+  	     expect(err).to.be.null;
+  	     expect(res).to.have.status(200);
+  	     expect(res.body.message).to.eql('driver 11 waits for a match');
+  	     done();	              	
+  	   });
+   })
   }) 
 
   // when found match
   it('should send message to driver when match was found', function(done) {
     let driver = helpers.createDriver(11, "Jane Doe", "654-111", 11, 1, 1, 1);
   	mongo.db.then(db => {
-  		db.db('cars').collection('drivers').insert(driver, (err, result) => {
+  		db.db('testDB').collection('testCol').insert(driver, (err, result) => {
 		  cache.redisClient.hmset([
             11, 
             "userId", 3, 
@@ -156,7 +162,8 @@ describe('GET requests', function() {
             "destY", 90
           ], (err, result) => {
             if (err) throw err;
-	        chai.request(server)
+           driver.test = true;
+	         chai.request(server)
 	          .get('/wait')
 	          .query(driver)
 	          .end(function (err, res) {
@@ -164,7 +171,7 @@ describe('GET requests', function() {
 	            expect(res).to.have.status(200);
                 cache.redisClient.del(11, (err, result) => {
 	              expect(res.body.message).to.eql('match is found');
-				        db.db('cars').collection('drivers').remove({driverId: 11}, () => done());	              	
+				        db.db('testDB').collection('testCol').remove({driverId: 11}, () => done());	              	
 	            });
 	          });  	
    		  }) 
