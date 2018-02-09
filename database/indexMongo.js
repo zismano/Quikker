@@ -4,10 +4,10 @@ const url = "mongodb://localhost:27017/";
 
 const db = mongoClient.connect(url);
 
-let updateDriver = (driver, callback) => {
+let updateDriver = (driver, database, col, callback) => {
   db.then(db => {
     let start = new Date();
-    var collection = db.db('cars').collection('drivers');
+    var collection = db.db(database).collection(col);
     collection.update(
       { driverId: driver.driverId },
       { updated_at: new Date(),
@@ -44,15 +44,15 @@ let d = {
 
 
 // to count active or available drivers e.g {activity: 1}
-let countDriversByQuery = (params, callback) => {
+let countDriversByQuery = (params, database, col, callback) => {
   let start = new Date();
   db.then(db => {
-    var collection = db.db('cars').collection('drivers');
+    var collection = db.db(database).collection(col);
     collection.find(params).count((err, result) => {
       if (err) {
         callback(err);
       } else {
-        console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
+  //      console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
         callback(null, result);
       }
     });
@@ -95,9 +95,9 @@ let countDriversByQuery = (params, callback) => {
 
 
 
-let getDriverStatus = (params, callback) => {
+let getDriverStatus = (params, database, col, callback) => {
   db.then(db => {
-    var collection = db.db('cars').collection('drivers');
+    var collection = db.db(database).collection(col);
     collection.findOne(params, (err, result) => {
       if (err) {
         callback(err);
@@ -110,10 +110,10 @@ let getDriverStatus = (params, callback) => {
 }
 
 // gets 10,000 offline drivers (to send them notifications if surge ratio is high)
-let getOfflineDrivers = (num, callback) => {
+let getOfflineDrivers = (num, database, col, callback) => {
   let start = new Date();
   db.then(db => {
-    var collection = db.db('cars').collection('drivers');
+    var collection = db.db(database).collection(col);
     collection.find({activity: 0}, {"limit": num}).toArray((err, result) => {
       if (err) {
         callback(err);

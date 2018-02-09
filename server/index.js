@@ -17,10 +17,15 @@ app.get('/cars', (req, res) => {
   	req.query = helpers.createRandomDriver(Math.floor(Math.random() * 10000000) + 1, 
   	helpers.x, helpers.y);
   }
+ // let driver2 = helpers.createDriver(11, "John Doe", "654-333", 100, 100, 0, 0);
+ // driver2.test = true;
+ // req.query = driver2;
   let message = req.query.message; // defined only if driver becomes available 
   let reqActivity = Number(req.query.activity);
+  let database = req.query.test ? 'testDB' : 'cars';
+  let col = req.query.test ? 'testCol' : 'drivers';
   // check status of driver
-  db.getDriverStatus( {driverId: Number(req.query.driverId) }, (err, result) => {
+  db.getDriverStatus( {driverId: Number(req.query.driverId) }, database, col, (err, result) => {
   	if (err) { throw err;
     } else if (!message && reqActivity === result.activity && reqActivity) {
 	  res.send('Driver is already online');
@@ -34,7 +39,7 @@ app.get('/cars', (req, res) => {
 	  //let location = JSON.parse(req.query.location);
 	  let location = req.query.location;
 	  let driver = helpers.createDriver(result.driverId, result.name, result.phone, location.x, location.y, req.query.activity, req.query.availability);
-	  db.updateDriver(driver, (err, result) => {
+	  db.updateDriver(driver, database, col, (err, result) => {
 	    if (err) throw err;
 	   	else {
 		  sendDriverToMatching(driver, res);
@@ -44,10 +49,10 @@ app.get('/cars', (req, res) => {
   });
 });
 
-let sendStatusNumbersToPricing = () => {
-  db.countDriversByQuery({ activity: 1 }, (err, activeDrivers) => {
+let sendStatusNumbersToPricing = (database, col) => {
+  db.countDriversByQuery({ activity: 1 }, database, col, (err, activeDrivers) => {
     if (err) throw err;
-    db.countDriversByQuery({ availability: 1}, (err, availableDrivers) => {
+    db.countDriversByQuery({ availability: 1}, database, col, (err, availableDrivers) => {
       if (err) throw err;
       axios.post('http://127.0.0.1:4000/pricing', {
         params: {
@@ -143,10 +148,9 @@ app.post('/pricing', (req, res) => {
   if (helpers.surgeRatio && helpers.surgeRatio < ratio) {
   	ratio = (ratio - helpers.surgeRatio) * 6;	// *10000 instead of *6
     // send push notifications to X offline drivers
-  	db.getOfflineDrivers(ratio, (err, results) => {
+  	db.getOfflineDrivers(ratio, 'cars', 'drivers', (err, results) => {
       if (err) throw err;
       results.forEach(result => {
-    	console.log(result);
  //   	push.sendSMS(result.name, result.phone);
       });
     });
@@ -164,6 +168,8 @@ app.post('/pricing', (req, res) => {
 
 app.get('/wait', (req, res) => {
    let start = new Date();
+   let database = req.query.test ? 'testDB' : 'cars';
+   let col = req.query.test ? 'testCol' : 'drivers';
    cache.redisClient.hgetall(req.query.driverId, function(err, object) {
      if (err) throw err;
      console.log(`Duration check if ${req.query.driverId} is in cache: ${(new Date() - start) / 1000}s`);
@@ -172,7 +178,7 @@ app.get('/wait', (req, res) => {
   	   res.send(data);	// sending to driver indication that he is waiting to match
      } else { // match
        cache.redisClient.del(req.query.driverId);  // delete match from cache
-       db.getDriverStatus({ driverId: Number(req.query.driverId) }, (err, result) => {
+       db.getDriverStatus({ driverId: Number(req.query.driverId) }, database, col, (err, result) => {
          if (err) throw err;
           else if (result.activity) {	// driver hasn't become offline
         data.message = 'match is found';  // send match to driver
@@ -180,7 +186,7 @@ app.get('/wait', (req, res) => {
 	    res.send(data);	// send details of user to driver
 	     // update driver's status to not available
 	     let driver = helpers.createDriver(req.query.driverId, result.name, result.phone, object.destX, object.destY, 1, 0);
-	      db.updateDriver(driver, (err, result) => {
+	      db.updateDriver(driver, database, col, (err, result) => {
 	   		if (err) throw err;
 	   	    console.log(`Driver ${driver.driverId} has become unavailable`);  
 	      }); 	
@@ -192,7 +198,7 @@ app.get('/wait', (req, res) => {
    });
 });
 
-setInterval(() => sendStatusNumbersToPricing(), 4000);
+setInterval(() => sendStatusNumbersToPricing('cars', 'drivers'), 4000);
 
 app.listen(3000);
 
