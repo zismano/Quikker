@@ -6,23 +6,23 @@ const url = "mongodb://localhost:27017/";
 const db = mongoClient.connect(url);
 
 // populate DB with 10M rows and afterwards, creating 2 indexes for better query performance
-let populateDB = function(start, end, duration) {
+let populateDB = function(start, end, duration, database, collection) {
   // insert batches of 50K records to database
   let batch = 50000;
-  populateDrivers(start * batch, end * batch, (err, results) => {
+  populateDrivers(start * batch, end * batch, database, collection, (err, results) => {
     if (err) {
       throw err;
     } else {
       // make it 200 times (recursive call to function)
-      if (++start === 200) {
+      if (++start === 2) {
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
         db.then(db => {
-          const collection = db.db('cars').collection('drivers');
+          const col = db.db(database).collection(collection);
           let columns = (["driverId", "activity", "availability"]);
-          addIndexes(collection, columns, 0);
+          addIndexes(col, columns, 0);
         });
       } else {
-        populateDB(start, start + 1, duration);      
+        populateDB(start, start + 1, duration, database, collection);      
       } 
     }
   })
@@ -45,9 +45,9 @@ let addIndexes = (collection, columns, numOfIndexInserted) => {
 }
 
 // populates drivers collection with 50K rows
-let populateDrivers = (index, documentNumber, callback) => {
+let populateDrivers = (index, documentNumber, database, collection, callback) => {
 	db.then(db => {
-	  const collection = db.db('cars').collection('drivers');
+	  const col = db.db(database).collection(collection);
 	  const batchNumber = documentNumber - index;
 	  const start = new Date();
 	  let batchDocuments = [];
@@ -55,7 +55,7 @@ let populateDrivers = (index, documentNumber, callback) => {
 	    let driver = createDriver(index + 1, x, y);
 	    batchDocuments[index % batchNumber] = driver;
 	    if ((index + 1) % batchNumber === 0) {
-	      collection.insert(batchDocuments, (err, result) => {
+	      col.insert(batchDocuments, (err, result) => {
 	        if (err) {
 	          callback(err);
 	        } else {
@@ -98,5 +98,5 @@ const y = 1000;
 
 // invocation of population of DB
 //var populate = function() {
-  populateDB(0, 1, new Date());
+  populateDB(0, 1, new Date(), 'cars', 'drivers');
 //}
