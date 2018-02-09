@@ -9,7 +9,6 @@ AWS.config.update({
 
 const sns = new AWS.SNS();
 
-
 let sendSMS = (name, phone) => {
   let params = {
     Message: `Hello ${name}, surge ratio is high! Connect Quikker NOW!`,
@@ -17,14 +16,7 @@ let sendSMS = (name, phone) => {
     PhoneNumber: phone,	// '+14084105813'
  //   Subject: 'Quikker - become online!'
   };	
-  sns.publish(params, function(err, data) {
-    if (err) {
-      console.log(err, err.stack); // an error occurred    
-    } 
-    else {
-      console.log(data);           // successful response
-    }
-  });
+  sns.publish(params, function(err, data) {})
 }
 
 module.exports = {

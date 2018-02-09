@@ -29,9 +29,7 @@ let updateDriver = (driver, callback) => {
         }
     )
   })
-  .catch(err => {
-    console.log(err);
-  })
+  .catch(err => {throw err})
 };
 
 let d = {
@@ -52,7 +50,6 @@ let countDriversByQuery = (params, callback) => {
     var collection = db.db('cars').collection('drivers');
     collection.find(params).count((err, result) => {
       if (err) {
-        console.log(err);
         callback(err);
       } else {
         console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
@@ -60,9 +57,7 @@ let countDriversByQuery = (params, callback) => {
       }
     });
   })
-  .catch(err => {
-    console.log(err);
-  });
+  .catch(err => {throw err});
 }
 
 // 1s each
@@ -70,32 +65,32 @@ let countDriversByQuery = (params, callback) => {
 
 
 // 29s with mapReduce
-let countDriversByQuery2 = function() {
-  let start = new Date();
-  db.then(db => {
-    var collection = db.db('cars').collection('drivers');
-    collection.mapReduce(
-      function () {
-          emit(this.availability, 1)
-      },
-      function (key, values) {
-        return Array.sum(values)
-      },
-      { 
-        query: { "activity": 1},
-        out: { inline: 1 }
-      },
-      function (err, result) {
-          if (err) {
-            console.log(err);
-          } else {
-            console.log(`Duration ${(new Date() - start) / 1000}s`);
-            console.log(result);
-          }
-      }
-    );
-  })
-}
+// let countDriversByQuery2 = function() {
+//   let start = new Date();
+//   db.then(db => {
+//     var collection = db.db('cars').collection('drivers');
+//     collection.mapReduce(
+//       function () {
+//           emit(this.availability, 1)
+//       },
+//       function (key, values) {
+//         return Array.sum(values)
+//       },
+//       { 
+//         query: { "activity": 1},
+//         out: { inline: 1 }
+//       },
+//       function (err, result) {
+//           if (err) {
+//     //        callback(err);
+//           } else {
+//             console.log(`Duration ${(new Date() - start) / 1000}s`);
+//             console.log(result);
+//           }
+//       }
+//     );
+//   })
+// }
 //countDriversByQuery2();
 
 
@@ -111,9 +106,7 @@ let getDriverStatus = (params, callback) => {
       }
     });
   })
-  .catch(err => {
-    console.log(err);
-  });
+  .catch(err => { throw err });
 }
 
 // gets 10,000 offline drivers (to send them notifications if surge ratio is high)
@@ -130,9 +123,7 @@ let getOfflineDrivers = (num, callback) => {
       }
     });
   })
-  .catch(err => {
-    console.log(err);
-  });
+  .catch(err => { throw err });
 }
 
 
@@ -140,31 +131,31 @@ let getOfflineDrivers = (num, callback) => {
 //> db.drivers.find({activity: 1}).count();
 
 // takes 10s??????
-let countByActivity = () => {
-  let start = new Date();
-  db.then(db => {
-    var collection = db.db('cars').collection('drivers');
-    collection.aggregate([
-        {
-          $group: {
-            _id: "$activity",
-            count: { $sum: 1 }
-          }
-        }
-      ]).toArray(function(err, results) {
-        if (err) {
-          console.log(`Error: ${err}`);          
-        } 
-        else {
-          console.log(`Results: ${results}`);
-          console.log(`duration ${(new Date() - start) / 1000}s`);
-        }
-      });
-  })
-  .catch(err => {
-    console.log(err);
-  });
-}
+// let countByActivity = () => {
+//   let start = new Date();
+//   db.then(db => {
+//     var collection = db.db('cars').collection('drivers');
+//     collection.aggregate([
+//         {
+//           $group: {
+//             _id: "$activity",
+//             count: { $sum: 1 }
+//           }
+//         }
+//       ]).toArray(function(err, results) {
+//         if (err) {
+//           console.log(`Error: ${err}`);          
+//         } 
+//         else {
+//           console.log(`Results: ${results}`);
+//           console.log(`duration ${(new Date() - start) / 1000}s`);
+//         }
+//       });
+//   })
+//   .catch(err => {
+//     console.log(err);
+//   });
+// }
 
 //countByActivity();
 //countDriversByQuery({activity: 1})
@@ -190,6 +181,6 @@ module.exports = {
   countDriversByQuery,
   getDriverStatus,
   getOfflineDrivers,
-  countDriversByQuery2,
+ // countDriversByQuery2,
  // insertDriver
 };

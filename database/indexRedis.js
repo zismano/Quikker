@@ -6,9 +6,10 @@ redisClient.on('ready',function() {
 });
 
 redisClient.on('error',function() {
- console.log("Error in Redis");
+ throw "Error in Redis";
 });
 
+// helper functino for populating cache
 let createMatch = (driverId) => {
   let obj = {
     driverId,
@@ -21,6 +22,7 @@ let createMatch = (driverId) => {
   return obj;
 }
 
+// just for testing cache!
 let populateCache = (driverId, start) => {
   let match = createMatch(driverId);
   redisClient.hmset([
@@ -32,16 +34,15 @@ let populateCache = (driverId, start) => {
   	"destY", match.destY
   ], function (err, res) {
   	if (err) {
-  		console.log(err);
+      throw err;
   	} else if (driverId === 1000000) {
-  		console.log(`Populate cache with ${driverId} docs in ${(new Date - start) / 1000}s`);
+      console.log(`Populate cache with ${driverId} docs in ${(new Date - start) / 1000}s`);
   	} else {
-  		if (driverId % 100000 === 0) {
-  			console.log(`Entered ${driverId} docs`);
-  		}
-  		populateCache(driverId + 1, start);
+  	  if (driverId % 100000 === 0) {
+  	    console.log(`Entered ${driverId} docs`);
+  	  }
+  	  populateCache(driverId + 1, start);
   	}
-
   });
 };
 

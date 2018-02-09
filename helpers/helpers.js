@@ -22,6 +22,26 @@ let createDriver = (driverId, name, phone, locationX, locationY, activity, avail
   })
 }
 
+let generateAvailability = activity =>
+  activity === 1 ? Math.round(Math.random()) : 0;
+
+let createRandomDriver = (driverId, maxX, maxY) => {
+  const activity = Math.round(Math.random()); 
+  return ({
+    updated_at: new Date(),
+    driverId,
+    location: {
+      x: Math.floor(Math.random() * maxX),
+      y: Math.floor(Math.random() * maxY),      
+    },
+    activity,
+    availability: generateAvailability(activity),
+    message: undefined,
+  })
+}
+
+//let convertFromSiege = driver => createDriver(driver.driverId, driver.name, driver.phone, driver.locationX, driver.locationY, driver.activity, driver.availability);
+
 module.exports = {
   x,
   y,
@@ -31,4 +51,7 @@ module.exports = {
   factor,
   surgeRatio,
   createDriver,
+  createRandomDriver,
+ // convertFromSiege,
+  generateAvailability,
 }

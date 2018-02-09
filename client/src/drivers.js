@@ -29,9 +29,7 @@ function getStatusFromDriver(endpoint, driver, availableAfterRide) {
       console.log(`Driver ${driver.driverId} turned offline`);
     }
   })
-  .catch(err => {
-    throw err;
-  });
+  .catch(err => { throw err });
 }
 
 let handleMatch = (driver, match) => {
@@ -53,26 +51,9 @@ let makeDriverAvailableAgain = (driver, match) => {
   getStatusFromDriver('cars', driver, 'available after ride');
 }
 
-
-
-// let generateAvailability = activity =>
-//   activity === 1 ? Math.round(Math.random()) : 0;
-
-// let makeDriverOnline = (index, maxX, maxY) => {
-//   let driver = {
-//     updated_at: new Date(),
-//     driverId: index,
-//     name: faker.name.findName(),
-//     phone: faker.phone.phoneNumber(),
-//     location: {
-//   	  x: Math.floor(Math.random() * maxX),
-//   	  y: Math.floor(Math.random() * maxY),
-//     },
-//     activity: 1,
-//     availability: 1,
-//   };
-//   return driver;
-// };
+let turnDriverActiveAndSendToService = () => {
+  getStatusFromDriver('cars', turnDriverActive());   
+}
 
 let turnDriverInactive = () => {
   let driver = {
@@ -98,26 +79,24 @@ let turnDriverActive = () => {
     activity: 1,
     availability: 1,
   };
-  getStatusFromDriver('cars', driver);
+  return driver;
 };
 
-setInterval(() => {
- // console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
-  turnDriverActive();
-  }, helpers.creationOfOnlineDriversTime * 100);
+// setInterval(() => {
+//  // console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
+//   turnDriverActiveAndSendToService();
+//   }, helpers.creationOfOnlineDriversTime * 100);
 
-setInterval(() => turnDriverInactive(), helpers.creationOfOfflineDriversTime * 100);
+// setInterval(() => turnDriverInactive(), helpers.creationOfOfflineDriversTime * 100);
 
 let changeDriversInterval = (onlineDriversTime, offlineDriversTime) => {
   helpers.creationOfOnlineDriversTime = onlineDriversTime;
   helpers.creationOfOfflineDriversTime = offlineDriversTime; 
 }; 
 
-
-//getStatusFromDriver('cars', {driverId: 1, location: {x: 1, y: 1}, activity: 1, availability: 1});
-
 module.exports = {
   changeDriversInterval,
+  turnDriverActive
 }
 
 
