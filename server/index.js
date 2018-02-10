@@ -1,40 +1,29 @@
 const newrelic = require('newrelic');
 const axios = require('axios');
-//const express = require('express');
 const bodyParser = require('body-parser');
-
-const db = require('../database/indexMongo.js');
+const mongo = require('../database/indexMongo.js');
 const cache = require('../database/indexRedis.js');
 const push = require('../helpers/awsPush.js');
 const helpers = require('../helpers/helpers.js');
-
 const app = require('express')();
-const sample = require('../database/sample.js');
-
-//var app = require('express')();
-
-var expressMongoDb = require('express-mongo-db'); // new
-app.use(expressMongoDb('mongodb://localhost/cars')); // new
+const mongoUtil = require('../database/mongoUtil.js');
 
 app.use(bodyParser.json());
 
+mongoUtil.connectToServer( function( err ) {
+  var db = mongoUtil.getDb();
+
 app.get('/cars', (req, res) => {
- // let { query } = req;	// ES6 message = req.message
-//	req.query = true;
-  //query = query.siege ? helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y) : query; 	// only for stress test
-  var query = helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y);
+  let { query } = req;	// ES6 message = req.message
+  query = !query.driverId ? helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y) : query; 	// for stress test only
   let { message } = query // defined only if driver becomes available 
   let reqActivity = Number(query.activity);
-//  let database = query.test ? 'testDB' : 'cars';
- // let col = query.test ? 'testCol' : 'drivers';
-  var col = req.db.db('cars').collection('drivers');
-  sample.getDriverStatus({ driverId: Number(query.driverId) }, req.db, col, (err, result) => {
-  // db.getDriverStatus({ driverId: Number(query.driverId) }, database, col, (err, result) => {
-  //   if (err) throw err;
-  //   else if (!message && reqActivity === result.activity && reqActivity) {
-//  	let result = helpers.createRandomDriver(Math.floor(Math.random() * 10000000), 1000, 1000);
+  let collection = query.test ? 'testCol' : helpers.driversCol;
+  const col = db.db('cars').collection(collection);
+  mongo.getDriverStatus({ driverId: Number(query.driverId) }, col, (err, result) => {
+    if (err) throw err;
   	if (!message && reqActivity === result.activity && reqActivity) {
-      res.send('Driver is already online');	
+      res.send('Driver is already online');
     } else if (!message && reqActivity === result.activity && !reqActivity) {
       res.send('Driver is already offline');
     } else if (!message && result.activity && !Number(result.availability)) {
@@ -42,20 +31,19 @@ app.get('/cars', (req, res) => {
 	} else if (!message && ((new Date() - result.updated_at) / 1000 / 3600) < 2) { 
 	  res.send('Driver may change status every 2 hours and more');
 	} else {
-//	  let driver = helpers.createDriver(result.driverId, result.name, result.phone, query.location.x, query.location.y, query.activity, query.availability);
-	  res.send('fine');
-//	 db.updateDriver(driver, database, col, (err, result) => {
-//	   if (err) throw err;
-//	  	sendDriverToMatching(driver, res);
-//	 })
+	  let driver = helpers.createDriver(result.driverId, result.name, result.phone, query.location.x, query.location.y, query.activity, query.availability);
+	 mongo.updateDriver(driver, col, (err, result) => {
+	   if (err) throw err;
+	  	sendDriverToMatching(driver, res);
+	 })
     };
   });
 });
 
-let sendStatusNumbersToPricing = (database, col) => {
-  db.countDriversByQuery({ activity: 1 }, database, col, (err, activeDrivers) => {
+let sendStatusNumbersToPricing = (col) => {
+  mongo.countDriversByQuery({ activity: 1 }, col, (err, activeDrivers) => {
     if (err) throw err;
-    db.countDriversByQuery({ availability: 1 }, database, col, (error, availableDrivers) => {
+    mongo.countDriversByQuery({ availability: 1 }, col, (error, availableDrivers) => {
       if (error) throw err;
       axios.post('http://127.0.0.1:4000/pricing', {
         params: { activeDrivers, availableDrivers, message: 'updated status' },
@@ -67,8 +55,7 @@ let sendStatusNumbersToPricing = (database, col) => {
 
 
 let sendDriverToMatching = (driver, res) => {
-  // if driver became active, he waits to a match
-  if (Number(driver.activity)) {
+  if (Number(driver.activity)) {  // if driver became active, he waits to a match
   	let data = {};
   	data.message = `driver ${driver.driverId} waits for a match`;
   	res.send(data);	// sending to driver indication that he is waiting to match
@@ -106,6 +93,7 @@ let sendDriverToMatching = (driver, res) => {
       activity: driver.activity,
       message: 'Driver is offline',
   	};
+  	res.sendStatus(200);
   	axiosPostRequest('http://127.0.0.1:5000/available/cars', params);
   }
 }
@@ -127,12 +115,11 @@ let sendsAnswerToMatch = (driverId, activity, availability) => {
 };
 
 app.post('/pricing', (req, res) => {
- // console.log(`Surge ratio is ${req.body.data.surgeRatio}`);
   res.send('Success receiving surge ratio');
   let ratio = !req.body.data ? 1 : req.body.data.surgeRatio;	// default to 1 for tests
   if (helpers.surgeRatio && helpers.surgeRatio < ratio) {
   	ratio = (ratio - helpers.surgeRatio) * 6;	// *10000 instead of *6
-  	db.getOfflineDrivers(ratio, 'cars', 'drivers', (err, results) => {
+  	mongo.getOfflineDrivers(ratio, helpers.driversCol, (err, results) => {
       if (err) throw err;
       results.forEach(result => { // send push notifications to X offline drivers
  //   	push.sendSMS(result.name, result.phone);
@@ -150,35 +137,39 @@ app.post('/pricing', (req, res) => {
 })
 
 app.get('/wait', (req, res) => {
-   let database = req.query.test ? 'testDB' : 'cars';
-   let col = req.query.test ? 'testCol' : 'drivers';
-   cache.redisClient.hgetall(req.query.driverId, function(err, object) {
-     if (err) throw err;
-     let data = { message: `driver ${req.query.driverId} waits for a match` };
-     if (!object) {
-  	   res.send(data);	// sending to driver indication that he is waiting to match
-     } else { // match
-       cache.redisClient.del(req.query.driverId);  // delete match from cache
-       db.getDriverStatus({ driverId: Number(req.query.driverId) }, database, col, (err, result) => {
-         if (err) throw err;
-         else if (result.activity) {	// driver hasn't become offline
-           data.message = 'match is found';  // send match to driver
-           data.match = object;
-	       res.send(data);	// send details of user to driver
-	       // update driver's status to not available
-	       let driver = helpers.createDriver(req.query.driverId, result.name, result.phone, object.destX, object.destY, 1, 0);
-	       db.updateDriver(driver, database, col, (err, result) => { // updated offline driver
-	   	     if (err) throw err;
-	       }); 	
-      	  }
-      	  sendsAnswerToMatch(Number(req.query.driverId), result.activity, result.availability);
-       })  // send matching ok for match // offline to matching
-     }
-   });
+  let collection = req.query.test ? 'testCol' : helpers.driversCol;
+  let col = db.db('cars').collection(collection);
+  let { query } = req;	// ES6 message = req.message
+  query = !query.driverId ? helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y) : query; 	// for stress test only
+  cache.redisClient.hgetall(query.driverId, function(err, object) {
+    if (err) throw err;
+    let data = { message: `driver ${query.driverId} waits for a match` };
+    if (!object) {
+  	  res.send(data);	// sending to driver indication that he is waiting to match
+    } else { // match
+      cache.redisClient.del(query.driverId);  // delete match from cache
+      mongo.getDriverStatus({ driverId: Number(query.driverId) }, col, (err, result) => {
+        if (err) throw err;
+        else if (result.activity) {	// driver hasn't become offline
+          data.message = 'match is found';  // send match to driver
+          data.match = object;
+	      res.send(data);	// send details of user to driver
+	      let driver = helpers.createDriver(query.driverId, result.name, result.phone, object.destX, object.destY, 1, 0); // update driver's status to not available
+	      mongo.updateDriver(driver, col, (err, result) => { // updated offline driver
+	   	    if (err) throw err;
+	      });	
+      	}
+      	sendsAnswerToMatch(Number(query.driverId), result.activity, result.availability);
+      })  // send matching ok for match // offline to matching
+    }
+  });
 });
 
-//setInterval(() => sendStatusNumbersToPricing('cars', 'drivers'), 4000);
-
+ setInterval(() => {
+ 	sendStatusNumbersToPricing(db.db('cars').collection(helpers.driversCol));
+ 	console.log('sending status to pricing');
+ }, 3000);
+})
 app.listen(3000);
 
 module.exports = app;
