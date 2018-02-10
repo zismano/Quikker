@@ -69,9 +69,9 @@ let turnDriverStatus = status => {
 setInterval(() => {
  // console.log(`creationOfOnlineDriversTime is ${global.creationOfOnlineDriversTime}`);
   turnDriverStatus(1);
-  }, helpers.creationOfOnlineDriversTime * 1);
+  }, helpers.creationOfOnlineDriversTime);
 
- setInterval(() => turnDriverStatus(0), helpers.creationOfOfflineDriversTime * 1);
+ setInterval(() => turnDriverStatus(0), helpers.creationOfOfflineDriversTime);
 
 let changeDriversInterval = (onlineDriversTime, offlineDriversTime) => {
   helpers.creationOfOnlineDriversTime = onlineDriversTime;
