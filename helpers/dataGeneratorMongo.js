@@ -13,8 +13,7 @@ let populateDB = function(start, end, duration, database, collection) {
     if (err) {
       throw err;
     } else {
-      // make it 200 times (recursive call to function)
-      if (++start === 200) {
+      if (++start === 200) {  // make it 200 times (recursive call to function)
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
         db.then(db => {
           const col = db.db(database).collection(collection);
