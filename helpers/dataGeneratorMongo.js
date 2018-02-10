@@ -14,7 +14,7 @@ let populateDB = function(start, end, duration, database, collection) {
       throw err;
     } else {
       // make it 200 times (recursive call to function)
-      if (++start === 2) {
+      if (++start === 200) {
         console.log(`Duration ${(new Date() - duration) / 1000} s`);
         db.then(db => {
           const col = db.db(database).collection(collection);
@@ -30,8 +30,12 @@ let populateDB = function(start, end, duration, database, collection) {
 
 let addIndexes = (collection, columns, numOfIndexInserted) => {
   if (columns.length === numOfIndexInserted) {
-    console.log('Finished adding indexes');
-    return;
+    collection.ensureIndex({"activity": 1, "availability": 1}, (err, result) => {
+      if (err) throw err;
+      console.log('Add multi-index on activity and availability');  
+      console.log('Finished adding indexes');
+      return;
+    });
   } else {
     collection.createIndex(columns[numOfIndexInserted], (err, result) => {
       if (err) {

@@ -5,8 +5,8 @@ const url = "mongodb://localhost:27017/";
 const db = mongoClient.connect(url);
 
 let updateDriver = (driver, database, col, callback) => {
+  let start = new Date();
   db.then(db => {
-    let start = new Date();
     var collection = db.db(database).collection(col);
     collection.update(
       { driverId: driver.driverId },
@@ -21,28 +21,31 @@ let updateDriver = (driver, database, col, callback) => {
         activity: driver.activity,
         availability: driver.availability }, (err, result) => {
           if (err) {
-            callback(err);
+     //       callback(err);
           } else {
             console.log(`Update time: ${(new Date() - start) / 1000} s`);
-              callback(null, result);
+      //        callback(null, result);
           }
         }
     )
   })
   .catch(err => {throw err})
 };
+// updateDriver({driverId: 9999999, name: 'John Smith', phone: '654.321', location: {x: 5, y: 10}, 
+//   activity: 1, availability: 0 }, 'cars', 'drivers');
+
 
 // to count active or available drivers e.g {activity: 1}
 let countDriversByQuery = (params, database, col, callback) => {
-  let start = new Date();
   db.then(db => {
+  let start = new Date();
     var collection = db.db(database).collection(col);
     collection.find(params).count((err, result) => {
       if (err) {
-        callback(err);
+   //     callback(err);
       } else {
         console.log(`Result:${result}, duration:${(new Date - start) / 1000}s`);
-        callback(null, result);
+   //     callback(null, result);
       }
     });
   })
@@ -50,7 +53,7 @@ let countDriversByQuery = (params, database, col, callback) => {
 }
 
 // 1s each
-//countDriversByQuery({activity: 1, availability: 0});
+countDriversByQuery({activity: 1, availability: 0}, 'cars', 'drivers');
 
 
 // 29s with mapReduce
@@ -82,21 +85,42 @@ let countDriversByQuery = (params, database, col, callback) => {
 // }
 //countDriversByQuery2();
 
-
+// let getDriverStatus = (params, database, col, callback) => {
+//   db.then(db => {
+//     var start = new Date();
+//     var collection = db.db(database).collection(col);
+//     collection.find(params, { "activity": 1, "availability": 1}, (err, result) => {
+//       if (err) {
+//   //      callback(err);
+//       } else {
+//    //     callback(null, result);
+//         console.log(`Duration: ${(new Date() - start) / 1000}s`);
+//       }
+//     });
+//   })
+//   .catch(err => { throw err });
+// }
 
 let getDriverStatus = (params, database, col, callback) => {
   db.then(db => {
+  var start = new Date();
     var collection = db.db(database).collection(col);
-    collection.findOne(params, (err, result) => {
+    collection.find(params, { "activity": 1, "availability": 1}, (err, result) => {
       if (err) {
-        callback(err);
+  //      callback(err);
       } else {
-        callback(null, result);
+   //     callback(null, result);
+        console.log(`Duration: ${(new Date() - start) / 1000}s`);
       }
     });
   })
   .catch(err => { throw err });
 }
+
+
+//getDriverStatus({driverId: 99999}, 'cars', 'drivers');
+
+
 
 // gets 10,000 offline drivers (to send them notifications if surge ratio is high)
 let getOfflineDrivers = (num, database, col, callback) => {
@@ -149,21 +173,6 @@ let getOfflineDrivers = (num, database, col, callback) => {
 //countByActivity();
 //countDriversByQuery({activity: 1})
 
-// function written only for tests...
-// let insertDriver = function(driver, callback) {
-//   db.then(db => {
-//     let start = new Date();
-//     var collection = db.db('cars').collection('drivers');
-//     collection.insert(driver, (err, result) => {
-//       if err {
-//         callback(err);
-//       } else {
-//         callback(null, result);
-//       }
-//     }) 
-//   })
-// }
-
 module.exports = {
   db,
   updateDriver,
@@ -171,5 +180,4 @@ module.exports = {
   getDriverStatus,
   getOfflineDrivers,
  // countDriversByQuery2,
- // insertDriver
 };

@@ -1,6 +1,6 @@
 const newrelic = require('newrelic');
 const axios = require('axios');
-const express = require('express');
+//const express = require('express');
 const bodyParser = require('body-parser');
 
 const db = require('../database/indexMongo.js');
@@ -8,21 +8,33 @@ const cache = require('../database/indexRedis.js');
 const push = require('../helpers/awsPush.js');
 const helpers = require('../helpers/helpers.js');
 
-const app = express();
+const app = require('express')();
+const sample = require('../database/sample.js');
+
+//var app = require('express')();
+
+var expressMongoDb = require('express-mongo-db'); // new
+app.use(expressMongoDb('mongodb://localhost/cars')); // new
 
 app.use(bodyParser.json());
 
 app.get('/cars', (req, res) => {
-  let { query } = req;	// ES6 message = req.message
-  query = query.siege ? helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y) : query; 	// only for stress test
+ // let { query } = req;	// ES6 message = req.message
+//	req.query = true;
+  //query = query.siege ? helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y) : query; 	// only for stress test
+  var query = helpers.createRandomDriver(Math.floor(Math.random() * helpers.numDrivers) + 1, helpers.x, helpers.y);
   let { message } = query // defined only if driver becomes available 
   let reqActivity = Number(query.activity);
-  let database = query.test ? 'testDB' : 'cars';
-  let col = query.test ? 'testCol' : 'drivers';
-  db.getDriverStatus({ driverId: Number(query.driverId) }, database, col, (err, result) => {
-    if (err) throw err;
-    else if (!message && reqActivity === result.activity && reqActivity) {
-      res.send('Driver is already online');
+//  let database = query.test ? 'testDB' : 'cars';
+ // let col = query.test ? 'testCol' : 'drivers';
+  var col = req.db.db('cars').collection('drivers');
+  sample.getDriverStatus({ driverId: Number(query.driverId) }, req.db, col, (err, result) => {
+  // db.getDriverStatus({ driverId: Number(query.driverId) }, database, col, (err, result) => {
+  //   if (err) throw err;
+  //   else if (!message && reqActivity === result.activity && reqActivity) {
+//  	let result = helpers.createRandomDriver(Math.floor(Math.random() * 10000000), 1000, 1000);
+  	if (!message && reqActivity === result.activity && reqActivity) {
+      res.send('Driver is already online');	
     } else if (!message && reqActivity === result.activity && !reqActivity) {
       res.send('Driver is already offline');
     } else if (!message && result.activity && !Number(result.availability)) {
@@ -30,11 +42,12 @@ app.get('/cars', (req, res) => {
 	} else if (!message && ((new Date() - result.updated_at) / 1000 / 3600) < 2) { 
 	  res.send('Driver may change status every 2 hours and more');
 	} else {
-	  let driver = helpers.createDriver(result.driverId, result.name, result.phone, query.location.x, query.location.y, query.activity, query.availability);
-	  db.updateDriver(driver, database, col, (err, result) => {
-	    if (err) throw err;
-	   	sendDriverToMatching(driver, res);
-	  })
+//	  let driver = helpers.createDriver(result.driverId, result.name, result.phone, query.location.x, query.location.y, query.activity, query.availability);
+	  res.send('fine');
+//	 db.updateDriver(driver, database, col, (err, result) => {
+//	   if (err) throw err;
+//	  	sendDriverToMatching(driver, res);
+//	 })
     };
   });
 });
@@ -164,7 +177,7 @@ app.get('/wait', (req, res) => {
    });
 });
 
-setInterval(() => sendStatusNumbersToPricing('cars', 'drivers'), 4000);
+//setInterval(() => sendStatusNumbersToPricing('cars', 'drivers'), 4000);
 
 app.listen(3000);
 
