@@ -1,12 +1,13 @@
 // creating global variables
 const x = 1000;
 const y = 1000;
-let creationOfOnlineDriversTime = 100;
-let creationOfOfflineDriversTime = 100;
+let creationOfOnlineDriversTime = 10;
+let creationOfOfflineDriversTime = 10;
 const velocity = 25; // mph
 const factor = 0.001;
 let surgeRatio;
 const numDrivers = 10000000;
+let driversCol = 'drivers';
 
 let createDriver = (driverId, name, phone, locationX, locationY, activity, availability) => {
   return ({
@@ -53,4 +54,5 @@ module.exports = {
   createRandomDriver,
   generateAvailability,
   numDrivers,
+  driversCol,
 }
