@@ -22,11 +22,13 @@ let updateDriver = (driver, collection, callback) => {
 
 // to count active or available drivers e.g {activity: 1}
 let countDriversByQuery = (params, collection, callback) => {
+  let start = new Date();
   collection.find(params).count((err, result) => {
     if (err) {
       callback(err);
     } else {
       callback(null, result);
+      console.log(`Duration from mongo: ${(new Date() - start) / 1000}s`);
     }
   });
 };
