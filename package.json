@@ -31,11 +31,11 @@
     "nyc": "^11.4.1"
   },
   "scripts": {
+    "start": "node server/index.js",
+    "drivers": "node client/src/drivers.js", 
     "test": "nyc --reporter=text mocha tests",
     "lint": "eslint ./ --config .eslintrc.js --ext js,jsx --ignore-pattern node_modules/",
-    "build:keyspace": "cqlsh -u root -f keyspace.cql",
-    "populate:mongodb": "node helpers/dataGeneratorMongo.js",
-    "populate:cassandra": "node helpers/dataGeneratorCassandra.js"
+    "populate:mongodb": "node helpers/dataGeneratorMongo.js"
   },
   "repository": {
     "type": "git",
