@@ -1,7 +1,9 @@
 const mongoClient = require('mongodb').MongoClient;
 const faker = require('faker');
 
-const url = "mongodb://localhost:27017/";
+const url = "mongodb://52.55.217.118:27017/";  // EC2 public ip of mongoDB instance:mongo port
+//const url = "mongodb://172.17.0.2:27017/";  // docker ip of mongoDB container:mongo port
+//const url = "mongodb://localhost:27017/";
 
 const db = mongoClient.connect(url);
 
@@ -99,7 +101,6 @@ let createDriver = (index, maxX, maxY) => {
 const x = 1000;
 const y = 1000;
 
-// invocation of population of DB
-//var populate = function() {
-  populateDB(0, 1, new Date(), 'cars', 'drivers');
-//}
+populateDB(0, 1, new Date(), 'cars', 'drivers');
+//  populateDB(0, 1, new Date(), 'testDB', 'testCol');
+
