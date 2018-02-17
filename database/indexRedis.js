@@ -1,5 +1,8 @@
 var redis = require('redis');
-var redisClient = redis.createClient({host : 'localhost', port : 6379});
+//var redisClient = redis.createClient({host : 'localhost', port : 6379});
+//var redisClient = redis.createClient({host : '172.17.0.3', port : 6379}); // docker ip of redis container
+var redisClient = redis.createClient({host : '54.147.203.101', port : 6379}); // EC2 ip of redis container
+
 
 redisClient.on('ready',function() {
  console.log("Redis is ready");
@@ -46,7 +49,7 @@ let populateCache = (driverId, start) => {
   });
 };
 
-//populateCache(1, new Date());
+populateCache(1, new Date());
 
 module.exports = {
   redisClient,
