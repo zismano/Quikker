@@ -11,20 +11,7 @@ const mongoUtil = require('../database/mongoUtil.js');
 app.use(bodyParser.json());
 
 mongoUtil.connectToServer( function( err ) {
-  var db = mongoUtil.getDb();
-
-  // app.get('/', (req, res) => {
-  //   let start = new Date();
-  //   const col = db.db('cars').collection(helpers.driversCol);
-  //    mongo.countDriversByQuery({ activity: 1, availability: 1 }, col, (err, activeDrivers) => {
-  //     if (err) throw err;
-  //     mongo.countDriversByQuery({ availability: 1, availability: 0 }, col, (error, availableDrivers) => {
-  //       if (error) throw err;
-  //       console.log(`Duration: ${(new Date() - start) / 1000}s`);  
-  //     })
-  //   })
-  //  res.send('HEY');
-  // });
+  let db = mongoUtil.getDb();
 
   app.get('/cars', (req, res) => {
     let { query } = req;	// ES6 message = req.message
@@ -157,7 +144,7 @@ mongoUtil.connectToServer( function( err ) {
     cache.redisClient.hgetall(query.driverId, function(err, object) {
       if (err) throw err;
       let data = { message: `driver ${query.driverId} waits for a match` };
-      if (!object) {
+      if (!object) {  
     	  res.send(data);	// sending to driver indication that he is waiting to match
       } else { // match
         cache.redisClient.del(query.driverId);  // delete match from cache
