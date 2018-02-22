@@ -1,6 +1,13 @@
 # Project Name
 
-The project description
+> Quikker is a tool for matching passengers to drivers
+
+## Team
+
+* Ofir Zisman
+* Franco Catania
+* Jake Luton
+* Catherine Han
 
 ## Roadmap
 
@@ -15,21 +22,44 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 1. [Usage](#Usage)
 1. [Requirements](#requirements)
 1. [Development](#development)
-    1. [Installing Dependencies](#installing-dependencies)
-    1. [Tasks](#tasks)
+   1. [Installing Dependencies](#installing-dependencies)
+1. [Contributing](#contributing)
+1. [Built With](#built-with)	
 
 ## Usage
 
-> Some usage instructions
+From within the root directory:
+
+```sh
+npm start
+```
 
 ## Requirements
 
-- Node 6.9.x
-- Redis 3.2.x
-- Postgresql 9.6.x
-- etc
+* Node 9.2.0
+* NPM 5.5.1
+* Redis 4.0.7
+* MongoDB 3.6.0 
 
-## Other Information
+## Development
 
-(TODO: fill this out with details about your project. Suggested ideas: architecture diagram, schema, and any other details from your app plan that sound interesting.)
+### Installing Dependencies
+
+From within the root directory:
+
+```sh
+npm install
+```
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Built With
+
+* ExpressJS
+* Redis
+* MongoDB
+* Docker
+* AWS push notifications
+* AWS EC2
 
