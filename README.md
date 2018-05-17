@@ -9,10 +9,6 @@
 * Jake Luton
 * Catherine Han
 
-## Roadmap
-
-View the project roadmap [here](LINK_TO_DOC)
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
